@@ -90,7 +90,7 @@ async function signIn() {
 async function fetchViewCSV(token, siteId, viewId) {
   const url = `${TABLEAU_SERVER}/api/${API_VER}/sites/${siteId}/views/${viewId}/data`;
   const resp = await fetch(url, {
-    headers: { 'X-Tableau-Auth': token, 'Accept': 'text/csv' }
+    headers: { 'X-Tableau-Auth': token }
   });
   if (!resp.ok) throw new Error(`View ${viewId} fetch failed: ${resp.status}`);
   return resp.text();
@@ -111,32 +111,38 @@ function processView(csv, viewCfg) {
     if (!dayRaw || !monthRaw || !yearRaw) continue;
     const month = MONTH_NUM[monthRaw];
     if (!month) continue;
+    const dayNum = parseInt(dayRaw);
+    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
 
-    const day = String(parseInt(dayRaw)).padStart(2, '0');
+    const day = String(dayNum).padStart(2, '0');
     const year = yearRaw.trim();
-    const value = parseFloat(valueRaw) || 0;
+    const value = parseFloat((valueRaw || '').replace(/,/g, '')) || 0;
     const dateStr = `${year}-${month}-${day}`;
 
     if (viewCfg.isChannelCM) {
+      const ch = row['채널구분'] || 'All';
+      const cmRaw = row['공헌이익(최종)(세분화)'] || row['Measure Values'] || '0';
+      const cmVal = parseFloat(cmRaw.replace(/,/g, '')) || 0;
       if (!daily['__channel_cm']) daily['__channel_cm'] = {};
       if (!daily['__channel_cm'][dateStr]) daily['__channel_cm'][dateStr] = {};
-      const ch = salesType || 'All';
-      daily['__channel_cm'][dateStr][ch] = (daily['__channel_cm'][dateStr][ch] || 0) + value;
+      daily['__channel_cm'][dateStr][ch] = (daily['__channel_cm'][dateStr][ch] || 0) + cmVal;
       continue;
     }
 
     if (!measure) continue;
-    const keys = [viewCfg.key];
-    if (viewCfg.hasSub && salesType) keys.push(`${viewCfg.subPrefix}${salesType}`);
 
-    for (const key of keys) {
+    if (viewCfg.hasSub) {
+      const st = (salesType || '').trim();
+      if (st === 'All' || st === '') continue;
+      const subKey = `${viewCfg.subPrefix}${st}`;
+      if (!daily[subKey]) daily[subKey] = {};
+      if (!daily[subKey][dateStr]) daily[subKey][dateStr] = {};
+      daily[subKey][dateStr][measure] = value;
+    } else {
+      const key = viewCfg.key;
       if (!daily[key]) daily[key] = {};
       if (!daily[key][dateStr]) daily[key][dateStr] = {};
-      if (key === viewCfg.key && viewCfg.hasSub) {
-        daily[key][dateStr][measure] = (daily[key][dateStr][measure] || 0) + value;
-      } else {
-        daily[key][dateStr][measure] = value;
-      }
+      daily[key][dateStr][measure] = value;
     }
   }
   return daily;
@@ -257,16 +263,37 @@ module.exports = async function handler(req, res) {
       Object.assign(allDaily, daily);
     }
 
+    // 고정비일자 = 브랜드 채널 뷰들의 마지막 날짜
+    const brandKeys = ['ss_total', 'coupang', 'b2b', 'etc'];
+    let cutoff = '';
+    for (const bk of brandKeys) {
+      if (!allDaily[bk]) continue;
+      const dates = Object.keys(allDaily[bk]).sort();
+      const last = dates[dates.length - 1];
+      if (last && (!cutoff || last < cutoff)) cutoff = last;
+    }
+
+    // cutoff 이후 데이터 제거
+    if (cutoff) {
+      for (const vk of Object.keys(allDaily)) {
+        for (const dt of Object.keys(allDaily[vk])) {
+          if (dt > cutoff) delete allDaily[vk][dt];
+        }
+      }
+      if (channelDaily) {
+        for (const dt of Object.keys(channelDaily)) {
+          if (dt > cutoff) delete channelDaily[dt];
+        }
+      }
+    }
+
     let views = aggregate(allDaily);
 
+    views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스']);
     views.brand_total = sumViews(views, ['ss_total', 'coupang', 'b2b', 'etc']);
     views.grand_total = sumViews(views, ['platform', 'brand_total', 'overseas']);
 
     const channel_cm = channelDaily ? aggregateChannelCM(channelDaily) : {};
-
-    const allDates = new Set();
-    for (const vd of Object.values(allDaily)) Object.keys(vd).forEach(d => allDates.add(d));
-    const cutoff = [...allDates].sort().pop() || '';
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
     res.status(200).json({ views, channel_cm, cutoff });
