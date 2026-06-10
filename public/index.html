@@ -118,6 +118,86 @@ table.data tr.week-summary td.col-cm{background:#EDE9FE!important}
 .promo-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,.15)}
 .promo-input::placeholder{color:var(--text-muted)}
 .week-label{white-space:nowrap;font-size:12px}
+
+.admin-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.admin-btn:hover{background:rgba(255,255,255,.25)}
+.admin-btn.unlocked{background:rgba(16,185,129,.3);border-color:rgba(16,185,129,.5)}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-box{background:#fff;border-radius:16px;padding:32px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center}
+.modal-box h3{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.modal-box .modal-sub{font-size:11px;color:var(--text-muted);margin-bottom:20px}
+.modal-input{width:100%;padding:10px 14px;font-size:14px;border:2px solid var(--border);border-radius:10px;text-align:center;letter-spacing:8px;font-weight:700;font-family:inherit;outline:none;transition:border-color .15s}
+.modal-input:focus{border-color:var(--blue)}
+.modal-input.error{border-color:var(--red);animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.modal-submit{margin-top:14px;width:100%;padding:10px;font-size:13px;font-weight:700;border:none;border-radius:10px;background:var(--navy);color:#fff;cursor:pointer;font-family:inherit;transition:background .15s}
+.modal-submit:hover{background:var(--navy-light)}
+.modal-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px}
+
+#adminPanel{display:none}
+#adminPanel.show{display:block}
+.admin-header{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.admin-header .admin-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:18px}
+.admin-header h2{font-size:16px;font-weight:800}
+.admin-header .admin-sub{font-size:10px;opacity:.5;margin-top:1px}
+.admin-exit{margin-left:auto;padding:6px 14px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:transparent;color:#fff;cursor:pointer;font-family:inherit}
+.admin-exit:hover{background:rgba(255,255,255,.15)}
+
+.admin-controls{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.admin-controls label{font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px}
+.admin-date{padding:6px 10px;font-size:12px;font-weight:600;border:2px solid var(--border);border-radius:8px;font-family:inherit;color:var(--text);outline:none}
+.admin-date:focus{border-color:var(--blue)}
+.admin-analyze{padding:7px 20px;font-size:12px;font-weight:700;border:none;border-radius:8px;background:var(--navy);color:#fff;cursor:pointer;font-family:inherit;transition:background .15s}
+.admin-analyze:hover{background:var(--navy-light)}
+.admin-quick{padding:5px 12px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--text-sub);font-family:inherit}
+.admin-quick:hover{background:#F8FAFC}
+.admin-quick.active{border-color:var(--blue);background:#EFF6FF;color:var(--blue)}
+
+.bu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.bu-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.bu-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.bu-card.bu-pf::before{background:var(--blue)}.bu-card.bu-br::before{background:var(--green)}.bu-card.bu-ov::before{background:var(--purple)}
+.bu-card:hover{border-color:var(--blue);box-shadow:0 2px 12px rgba(59,130,246,.1)}
+.bu-card.expanded{border-color:var(--blue);box-shadow:0 4px 16px rgba(59,130,246,.15)}
+.bu-label{font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.bu-label .expand-arrow{font-size:14px;transition:transform .2s;margin-left:auto}
+.bu-card.expanded .expand-arrow{transform:rotate(90deg)}
+.bu-val{font-size:24px;font-weight:800;margin-bottom:2px}
+.bu-delta{font-size:11px;font-weight:700}
+.bu-pct{font-size:10px;color:var(--text-muted);margin-top:1px}
+.bu-sub{margin-top:12px;border-top:1px solid var(--border);padding-top:10px;display:none}
+.bu-card.expanded .bu-sub{display:block}
+.sub-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #F8FAFC}
+.sub-row:last-child{border-bottom:none}
+.sub-name{flex:0 0 80px;font-size:11px;font-weight:600;color:var(--text-sub)}
+.sub-val{flex:1;font-size:12px;font-weight:700;text-align:right}
+.sub-delta{flex:0 0 80px;font-size:10px;font-weight:700;text-align:right}
+.sub-bar-wrap{flex:1;margin:0 8px;height:6px;background:#F1F5F9;border-radius:3px;overflow:hidden}
+.sub-bar{height:100%;border-radius:3px;transition:width .3s}
+
+.admin-insight{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:18px;margin-bottom:16px}
+.admin-insight h4{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.insight-item{padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:12px;line-height:1.6}
+.insight-item.positive{background:#F0FDF4;color:#065F46;border-left:3px solid var(--green)}
+.insight-item.negative{background:#FEF2F2;color:#991B1B;border-left:3px solid var(--red)}
+.insight-item.neutral{background:#F8FAFC;color:var(--text);border-left:3px solid var(--border)}
+
+.admin-detail-table{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+.admin-detail-table .table-header{padding:12px 16px;border-bottom:1px solid var(--border)}
+.admin-detail-table .table-header h3{font-size:13px;font-weight:700}
+table.admin-tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.admin-tbl th{background:var(--navy);color:#fff;padding:8px 12px;text-align:right;font-weight:600;font-size:11px;white-space:nowrap}
+table.admin-tbl th:first-child{text-align:left;min-width:100px}
+table.admin-tbl td{padding:7px 12px;border-bottom:1px solid #F1F5F9;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.admin-tbl td:first-child{text-align:left;font-weight:600}
+table.admin-tbl tr.bu-total{background:#F0F4FF;font-weight:700}
+table.admin-tbl tr.bu-total td{border-top:2px solid var(--blue)}
+table.admin-tbl tr:hover td{background:#EFF6FF}
+
+.chart-container.admin-chart{height:300px}
+@media(max-width:1200px){.bu-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -130,7 +210,7 @@ table.data tr.week-summary td.col-cm{background:#EDE9FE!important}
 
 <div class="header">
   <div><h1>바잇미 전사 ROI 대시보드</h1><div class="sub">Tableau REST API 실시간 연동 — 9개 뷰 전체 · 연간~일간</div></div>
-  <div class="header-right"><button class="refresh-btn" onclick="loadData(true)" title="데이터 갱신">&#x21BB;</button><div class="live-dot"></div><span style="font-size:11px;font-weight:600;color:var(--green)">LIVE</span><span id="cutoffLabel" style="font-size:10px;opacity:.5">로딩중...</span></div>
+  <div class="header-right"><button class="admin-btn" id="adminToggle" onclick="toggleAdmin()" title="관리자 모드">&#x1F512;</button><button class="refresh-btn" onclick="loadData(true)" title="데이터 갱신">&#x21BB;</button><div class="live-dot"></div><span style="font-size:11px;font-weight:600;color:var(--green)">LIVE</span><span id="cutoffLabel" style="font-size:10px;opacity:.5">로딩중...</span></div>
 </div>
 
 <div class="nav-tree">
@@ -209,7 +289,42 @@ table.data tr.week-summary td.col-cm{background:#EDE9FE!important}
   <div class="chart-grid"><div class="chart-card full"><h4>채널구분별 공헌이익</h4><div class="cs">월간 스택</div><div class="chart-container tall"><canvas id="chartCh"></canvas></div></div></div>
 </div>
 
+<div id="adminPanel">
+  <div class="admin-header">
+    <div class="admin-icon">&#x1F6E1;</div>
+    <div><h2>관리자 분석 모드</h2><div class="admin-sub">사업부별 공헌이익 브레이크다운 · 일자별 드릴다운</div></div>
+    <button class="admin-exit" onclick="exitAdmin()">일반 모드로 돌아가기</button>
+  </div>
+
+  <div class="admin-controls">
+    <label>기간 선택</label>
+    <input type="date" class="admin-date" id="adminFrom">
+    <span style="font-size:12px;color:var(--text-muted)">~</span>
+    <input type="date" class="admin-date" id="adminTo">
+    <button class="admin-analyze" onclick="runAdminAnalysis()">분석 실행</button>
+    <div class="sep"></div>
+    <label>빠른 선택</label>
+    <button class="admin-quick" onclick="setQuickRange('7d')">최근 7일</button>
+    <button class="admin-quick" onclick="setQuickRange('14d')">최근 14일</button>
+    <button class="admin-quick" onclick="setQuickRange('30d')">최근 30일</button>
+    <button class="admin-quick" onclick="setQuickRange('thisMonth')">이번 달</button>
+    <button class="admin-quick" onclick="setQuickRange('lastMonth')">지난 달</button>
+  </div>
+
+  <div id="adminResult"></div>
+</div>
+
 <div class="footer">Tableau MCP 자동 연동 | 바잇미 전사 ROI 대시보드 | 데이터 ~2026-06-07 | 생성 2026-06-08</div>
+</div>
+
+<div class="modal-overlay" id="adminModal">
+  <div class="modal-box">
+    <h3>관리자 모드</h3>
+    <div class="modal-sub">비밀번호를 입력하세요</div>
+    <input type="password" class="modal-input" id="adminPw" maxlength="4" placeholder="····" onkeydown="if(event.key==='Enter')submitAdminPw()">
+    <button class="modal-submit" onclick="submitAdminPw()">확인</button>
+    <div class="modal-err" id="adminErr"></div>
+  </div>
 </div>
 
 <script>
@@ -753,6 +868,340 @@ async function loadData(bustCache){
     msg.innerHTML='<span style="color:#EF4444">데이터 로드 실패</span><br><span style="font-size:12px;color:#64748B">'+e.message+'</span><br><button onclick="loadData(true)" style="margin-top:12px;padding:8px 20px;border:2px solid #1B2A4A;border-radius:8px;background:#1B2A4A;color:#fff;font-weight:700;cursor:pointer">다시 시도</button>';
   }
 }
+// === Admin Mode ===
+let isAdmin = false;
+let adminCharts = {};
+
+function toggleAdmin(){
+  if(isAdmin){ exitAdmin(); return; }
+  let modal=document.getElementById('adminModal');
+  modal.classList.add('show');
+  document.getElementById('adminPw').value='';
+  document.getElementById('adminErr').textContent='';
+  setTimeout(()=>document.getElementById('adminPw').focus(),100);
+}
+
+function submitAdminPw(){
+  let pw=document.getElementById('adminPw').value;
+  if(pw==='1105'){
+    document.getElementById('adminModal').classList.remove('show');
+    isAdmin=true;
+    document.getElementById('adminToggle').classList.add('unlocked');
+    document.getElementById('adminToggle').innerHTML='&#x1F513;';
+    enterAdminMode();
+  } else {
+    document.getElementById('adminPw').classList.add('error');
+    document.getElementById('adminErr').textContent='비밀번호가 올바르지 않습니다';
+    setTimeout(()=>document.getElementById('adminPw').classList.remove('error'),300);
+  }
+}
+
+document.getElementById('adminModal').addEventListener('click',function(e){
+  if(e.target===this) this.classList.remove('show');
+});
+
+function enterAdminMode(){
+  document.querySelectorAll('.nav-tree,.controls,.kpi-row,.table-wrap,.section').forEach(el=>el.style.display='none');
+  document.getElementById('adminPanel').classList.add('show');
+  initAdminDates();
+}
+
+function exitAdmin(){
+  isAdmin=false;
+  document.getElementById('adminToggle').classList.remove('unlocked');
+  document.getElementById('adminToggle').innerHTML='&#x1F512;';
+  document.getElementById('adminPanel').classList.remove('show');
+  document.querySelectorAll('.nav-tree,.controls,.kpi-row,.table-wrap,.section').forEach(el=>el.style.display='');
+  document.getElementById('secChannel').style.display='none';
+  Object.values(adminCharts).forEach(c=>{if(c)c.destroy();});
+  adminCharts={};
+  render();
+}
+
+function initAdminDates(){
+  if(!D||!D.views)return;
+  let allDates=Object.keys(D.views.grand_total?.D||{}).sort();
+  if(!allDates.length)return;
+  let last=allDates[allDates.length-1];
+  let fromDate=new Date(last);
+  fromDate.setDate(fromDate.getDate()-6);
+  let fromStr=fromDate.toISOString().slice(0,10);
+  if(fromStr<allDates[0])fromStr=allDates[0];
+  document.getElementById('adminFrom').value=fromStr;
+  document.getElementById('adminTo').value=last;
+  document.getElementById('adminFrom').min=allDates[0];
+  document.getElementById('adminFrom').max=last;
+  document.getElementById('adminTo').min=allDates[0];
+  document.getElementById('adminTo').max=last;
+  runAdminAnalysis();
+}
+
+function setQuickRange(preset){
+  if(!D||!D.views)return;
+  let allDates=Object.keys(D.views.grand_total?.D||{}).sort();
+  if(!allDates.length)return;
+  let last=allDates[allDates.length-1];
+  let to=new Date(last), from;
+  if(preset==='7d'){from=new Date(to);from.setDate(from.getDate()-6);}
+  else if(preset==='14d'){from=new Date(to);from.setDate(from.getDate()-13);}
+  else if(preset==='30d'){from=new Date(to);from.setDate(from.getDate()-29);}
+  else if(preset==='thisMonth'){from=new Date(to.getFullYear(),to.getMonth(),1);}
+  else if(preset==='lastMonth'){from=new Date(to.getFullYear(),to.getMonth()-1,1);to=new Date(to.getFullYear(),to.getMonth(),0);}
+  let fromStr=from.toISOString().slice(0,10);
+  let toStr=to.toISOString().slice(0,10);
+  if(fromStr<allDates[0])fromStr=allDates[0];
+  if(toStr>last)toStr=last;
+  document.getElementById('adminFrom').value=fromStr;
+  document.getElementById('adminTo').value=toStr;
+  document.querySelectorAll('.admin-quick').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  runAdminAnalysis();
+}
+
+function sumDailyRange(viewKey,fromStr,toStr){
+  if(!D||!D.views||!D.views[viewKey])return null;
+  let daily=D.views[viewKey].D||{};
+  let dates=Object.keys(daily).filter(d=>d>=fromStr&&d<=toStr).sort();
+  if(!dates.length)return null;
+  let result={_dates:dates,_count:dates.length};
+  dates.forEach(d=>{
+    let row=daily[d];
+    if(!row)return;
+    Object.entries(row).forEach(([k,v])=>{
+      if(v!=null)result[k]=(result[k]||0)+v;
+    });
+  });
+  return result;
+}
+
+function getPrevRange(fromStr,toStr){
+  let from=new Date(fromStr),to=new Date(toStr);
+  let days=Math.round((to-from)/(86400000))+1;
+  let prevTo=new Date(from);
+  prevTo.setDate(prevTo.getDate()-1);
+  let prevFrom=new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate()-days+1);
+  return{from:prevFrom.toISOString().slice(0,10),to:prevTo.toISOString().slice(0,10)};
+}
+
+function adminFmt(v){
+  if(v==null)return'-';
+  let a=Math.abs(v);
+  if(a>=1e8)return(v<0?'-':'')+(a/1e8).toFixed(1)+'억';
+  if(a>=1e4)return(v<0?'-':'')+(a/1e4).toFixed(0)+'만';
+  return Math.round(v).toLocaleString('ko-KR');
+}
+
+function adminPct(cur,prev){
+  if(!prev||prev===0)return cur>0?'+∞':cur<0?'-∞':'0%';
+  let pct=((cur-prev)/Math.abs(prev)*100);
+  return(pct>=0?'+':'')+pct.toFixed(1)+'%';
+}
+
+const BU_CONFIG=[
+  {key:'platform',label:'플랫폼사업부',cls:'bu-pf',color:'#3B82F6',
+   subs:[{key:'pf_상품',label:'상품'},{key:'pf_수수료',label:'수수료'},{key:'pf_제품',label:'제품'},{key:'pf_서비스',label:'서비스'}]},
+  {key:'brand_total',label:'브랜드사업부',cls:'bu-br',color:'#10B981',
+   subs:[{key:'ss_total',label:'스스'},{key:'coupang',label:'쿠팡'},{key:'b2b',label:'B2B'},{key:'etc',label:'그외'}]},
+  {key:'overseas',label:'해외사업부',cls:'bu-ov',color:'#8B5CF6',subs:[]}
+];
+
+function runAdminAnalysis(){
+  let fromStr=document.getElementById('adminFrom').value;
+  let toStr=document.getElementById('adminTo').value;
+  if(!fromStr||!toStr||!D||!D.views){return;}
+  let prev=getPrevRange(fromStr,toStr);
+  let from=new Date(fromStr),to=new Date(toStr);
+  let dayCount=Math.round((to-from)/86400000)+1;
+
+  let grandCur=sumDailyRange('grand_total',fromStr,toStr);
+  let grandPrev=sumDailyRange('grand_total',prev.from,prev.to);
+  let grandCM=gv(grandCur,'공헌이익')||0;
+  let grandPrevCM=gv(grandPrev,'공헌이익')||0;
+
+  let buData=BU_CONFIG.map(bu=>{
+    let cur=sumDailyRange(bu.key,fromStr,toStr);
+    let prv=sumDailyRange(bu.key,prev.from,prev.to);
+    let cm=gv(cur,'공헌이익')||0;
+    let prevCm=gv(prv,'공헌이익')||0;
+    let ns=gv(cur,'순매출')||0;
+    let prevNs=gv(prv,'순매출')||0;
+    let subs=bu.subs.map(s=>{
+      let sc=sumDailyRange(s.key,fromStr,toStr);
+      let sp=sumDailyRange(s.key,prev.from,prev.to);
+      return{...s,cm:gv(sc,'공헌이익')||0,prevCm:gv(sp,'공헌이익')||0,
+             ns:gv(sc,'순매출')||0,prevNs:gv(sp,'순매출')||0,
+             roi:sc?(gv(sc,'공헌이익')||0)/(gv(sc,'순매출')||1)*100:0};
+    });
+    return{...bu,cm,prevCm,ns,prevNs,delta:cm-prevCm,subs};
+  });
+
+  let html='';
+
+  // Summary KPI
+  html+='<div class="kpi-row" style="display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:14px">';
+  html+='<div class="kpi c-purple"><div class="kl">선택기간 전사 공헌이익</div><div class="kv">'+adminFmt(grandCM)+'</div><div class="ks '+(grandCM>=grandPrevCM?'up':'dn')+'">전기 대비 '+adminPct(grandCM,grandPrevCM)+'</div></div>';
+  html+='<div class="kpi c-blue"><div class="kl">전사 순매출</div><div class="kv">'+adminFmt(gv(grandCur,'순매출')||0)+'</div><div class="ks">'+(grandCur?grandCur._count:0)+'일 데이터</div></div>';
+  html+='<div class="kpi c-green"><div class="kl">전사 ROI</div><div class="kv">'+(grandCM/(gv(grandCur,'순매출')||1)*100).toFixed(1)+'%</div><div class="ks">공헌이익/순매출</div></div>';
+  html+='<div class="kpi c-amber"><div class="kl">비교 기간</div><div class="kv">'+dayCount+'일</div><div class="ks">'+fromStr+' ~ '+toStr+'</div></div>';
+  html+='</div>';
+
+  // Business Unit Cards
+  html+='<div class="bu-grid">';
+  buData.forEach((bu,idx)=>{
+    let isUp=bu.delta>=0;
+    let col=isUp?'var(--green)':'var(--red)';
+    let arrow=isUp?'▲':'▼';
+    html+='<div class="bu-card '+bu.cls+'" id="buCard'+idx+'" onclick="toggleBuCard('+idx+')">';
+    html+='<div class="bu-label">'+bu.label+'<span class="expand-arrow">▶</span></div>';
+    html+='<div class="bu-val" style="color:'+(bu.cm>=0?'var(--text)':'var(--red)')+'">'+adminFmt(bu.cm)+'</div>';
+    html+='<div class="bu-delta" style="color:'+col+'">'+arrow+' '+adminFmt(Math.abs(bu.delta))+' ('+adminPct(bu.cm,bu.prevCm)+')</div>';
+    html+='<div class="bu-pct">전사 대비 '+(grandCM?(bu.cm/grandCM*100).toFixed(1):0)+'%</div>';
+    if(bu.subs.length>0){
+      html+='<div class="bu-sub">';
+      let maxCm=Math.max(...bu.subs.map(s=>Math.abs(s.cm)),1);
+      bu.subs.forEach(s=>{
+        let sUp=s.cm>=s.prevCm;
+        let sCol=sUp?'var(--green)':'var(--red)';
+        let barW=Math.abs(s.cm)/maxCm*100;
+        let barC=s.cm>=0?bu.color:'#EF4444';
+        html+='<div class="sub-row">';
+        html+='<div class="sub-name">'+s.label+'</div>';
+        html+='<div class="sub-bar-wrap"><div class="sub-bar" style="width:'+barW+'%;background:'+barC+'"></div></div>';
+        html+='<div class="sub-val">'+adminFmt(s.cm)+'</div>';
+        html+='<div class="sub-delta" style="color:'+sCol+'">'+adminPct(s.cm,s.prevCm)+'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // Daily Breakdown Table
+  html+='<div class="admin-detail-table"><div class="table-header"><h3>일자별 사업부 공헌이익 브레이크다운</h3></div>';
+  html+='<div style="overflow-x:auto;max-height:50vh;overflow-y:auto"><table class="admin-tbl"><thead><tr><th>일자</th><th>전체</th>';
+  BU_CONFIG.forEach(bu=>{
+    html+='<th style="background:'+bu.color+'">'+bu.label+'</th>';
+    bu.subs.forEach(s=>html+='<th style="background:'+bu.color+';opacity:.8;font-size:10px">'+s.label+'</th>');
+  });
+  html+='</tr></thead><tbody>';
+
+  let allDates=Object.keys(D.views.grand_total?.D||{}).filter(d=>d>=fromStr&&d<=toStr).sort();
+  let totals={grand:0};
+  BU_CONFIG.forEach(bu=>{totals[bu.key]=0;bu.subs.forEach(s=>totals[s.key]=0);});
+
+  allDates.forEach(d=>{
+    let gCm=gv(D.views.grand_total?.D?.[d],'공헌이익')||0;
+    totals.grand+=gCm;
+    let label=parseInt(d.split('-')[1])+'/'+parseInt(d.split('-')[2]);
+    html+='<tr><td>'+label+'</td><td style="font-weight:700">'+adminFmt(gCm)+'</td>';
+    BU_CONFIG.forEach(bu=>{
+      let bCm=gv(D.views[bu.key]?.D?.[d],'공헌이익')||0;
+      totals[bu.key]+=bCm;
+      let bgCol=bCm>0?'':'background:#FEF2F2';
+      html+='<td style="'+bgCol+'">'+adminFmt(bCm)+'</td>';
+      bu.subs.forEach(s=>{
+        let sCm=gv(D.views[s.key]?.D?.[d],'공헌이익')||0;
+        totals[s.key]+=sCm;
+        let sbg=sCm>0?'':'background:#FEF2F2';
+        html+='<td style="font-size:11px;'+sbg+'">'+adminFmt(sCm)+'</td>';
+      });
+    });
+    html+='</tr>';
+  });
+
+  // Total row
+  html+='<tr class="bu-total"><td>합계</td><td>'+adminFmt(totals.grand)+'</td>';
+  BU_CONFIG.forEach(bu=>{
+    html+='<td>'+adminFmt(totals[bu.key])+'</td>';
+    bu.subs.forEach(s=>html+='<td style="font-size:11px">'+adminFmt(totals[s.key])+'</td>');
+  });
+  html+='</tr></tbody></table></div></div>';
+
+  // CM Trend Chart
+  html+='<div class="chart-grid"><div class="chart-card full"><h4>선택 기간 사업부별 공헌이익 추이</h4><div class="cs">'+fromStr+' ~ '+toStr+'</div><div class="chart-container admin-chart"><canvas id="adminTrendChart"></canvas></div></div></div>';
+
+  // Insights
+  html+='<div class="admin-insight"><h4>&#x1F4A1; 자동 인사이트</h4>';
+  let insights=generateInsights(buData,grandCM,grandPrevCM,fromStr,toStr,dayCount);
+  insights.forEach(i=>html+='<div class="insight-item '+i.type+'">'+i.text+'</div>');
+  html+='</div>';
+
+  document.getElementById('adminResult').innerHTML=html;
+
+  // Render chart
+  Object.values(adminCharts).forEach(c=>{if(c)c.destroy();});
+  adminCharts={};
+  let chartEl=document.getElementById('adminTrendChart');
+  if(chartEl&&allDates.length>0){
+    let labels=allDates.map(d=>parseInt(d.split('-')[1])+'/'+parseInt(d.split('-')[2]));
+    let datasets=BU_CONFIG.map(bu=>({
+      label:bu.label,
+      data:allDates.map(d=>Math.round(gv(D.views[bu.key]?.D?.[d],'공헌이익')||0)),
+      borderColor:bu.color,
+      backgroundColor:bu.color+'20',
+      fill:true,
+      tension:.3
+    }));
+    adminCharts.trend=new Chart(chartEl.getContext('2d'),{
+      type:'line',data:{labels,datasets},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top',labels:{font:{size:10}}}},
+        scales:{y:{title:{display:true,text:'공헌이익 (원)',font:{size:9}},ticks:{callback:v=>adminFmt(v)}}}}
+    });
+  }
+}
+
+function toggleBuCard(idx){
+  let card=document.getElementById('buCard'+idx);
+  card.classList.toggle('expanded');
+}
+
+function generateInsights(buData,grandCM,grandPrevCM,fromStr,toStr,dayCount){
+  let insights=[];
+  let grandDelta=grandCM-grandPrevCM;
+
+  if(grandDelta>0){
+    insights.push({type:'positive',text:'선택 기간('+dayCount+'일) 전사 공헌이익 <b>'+adminFmt(grandCM)+'</b>으로 전기 대비 <b>'+adminPct(grandCM,grandPrevCM)+'</b> 증가했습니다.'});
+  } else if(grandDelta<0){
+    insights.push({type:'negative',text:'선택 기간('+dayCount+'일) 전사 공헌이익 <b>'+adminFmt(grandCM)+'</b>으로 전기 대비 <b>'+adminPct(grandCM,grandPrevCM)+'</b> 감소했습니다.'});
+  } else {
+    insights.push({type:'neutral',text:'선택 기간('+dayCount+'일) 전사 공헌이익 변동 없음'});
+  }
+
+  let sorted=[...buData].sort((a,b)=>b.delta-a.delta);
+  let topGainer=sorted[0];
+  let topLoser=sorted[sorted.length-1];
+
+  if(topGainer.delta>0){
+    insights.push({type:'positive',text:'<b>'+topGainer.label+'</b>이 공헌이익 증가를 주도 (+'+adminFmt(topGainer.delta)+', '+adminPct(topGainer.cm,topGainer.prevCm)+')'});
+    let topSub=topGainer.subs.sort((a,b)=>(b.cm-b.prevCm)-(a.cm-a.prevCm))[0];
+    if(topSub&&topSub.cm>topSub.prevCm){
+      insights.push({type:'positive',text:'└ '+topGainer.label+' 내 <b>'+topSub.label+'</b> 채널이 핵심 성장 드라이버 ('+adminFmt(topSub.cm)+', '+adminPct(topSub.cm,topSub.prevCm)+')'});
+    }
+  }
+
+  if(topLoser.delta<0){
+    insights.push({type:'negative',text:'<b>'+topLoser.label+'</b> 공헌이익 하락 ('+adminFmt(topLoser.delta)+', '+adminPct(topLoser.cm,topLoser.prevCm)+')'});
+    let worstSub=topLoser.subs.sort((a,b)=>(a.cm-a.prevCm)-(b.cm-b.prevCm))[0];
+    if(worstSub&&worstSub.cm<worstSub.prevCm){
+      insights.push({type:'negative',text:'└ '+topLoser.label+' 내 <b>'+worstSub.label+'</b> 채널 공헌이익 감소 ('+adminFmt(worstSub.cm)+', '+adminPct(worstSub.cm,worstSub.prevCm)+')'});
+    }
+  }
+
+  buData.forEach(bu=>{
+    if(bu.subs.length===0)return;
+    let contribs=bu.subs.map(s=>({label:s.label,pct:bu.cm?s.cm/bu.cm*100:0})).sort((a,b)=>b.pct-a.pct);
+    let top=contribs[0];
+    if(top&&top.pct>50){
+      insights.push({type:'neutral',text:bu.label+' 공헌이익의 <b>'+top.pct.toFixed(1)+'%</b>가 '+top.label+' 채널에 집중 — 채널 다변화 필요 여부 검토'});
+    }
+  });
+
+  return insights;
+}
+
 loadData();
 </script>
 </body>
