@@ -133,7 +133,15 @@ function processView(csv, viewCfg) {
 
     if (viewCfg.hasSub) {
       const st = (salesType || '').trim();
-      if (st === 'All' || st === '') continue;
+      if (st === 'All' || st === '') {
+        if (measure === '구매자수') {
+          const uKey = `${viewCfg.key}__buyers`;
+          if (!daily[uKey]) daily[uKey] = {};
+          if (!daily[uKey][dateStr]) daily[uKey][dateStr] = {};
+          daily[uKey][dateStr]['구매자수'] = value;
+        }
+        continue;
+      }
       const subKey = `${viewCfg.subPrefix}${st}`;
       if (!daily[subKey]) daily[subKey] = {};
       if (!daily[subKey][dateStr]) daily[subKey][dateStr] = {};
@@ -177,13 +185,20 @@ function aggregate(allDaily) {
       }
     }
 
-    for (const [gName, bucket] of [['Y', Y], ['Q', Q], ['M', M], ['W', W]]) {
+    for (const [gName, bucket] of [['Y', Y], ['Q', Q]]) {
       for (const [pk, measures] of Object.entries(bucket)) {
         for (const m of AVG_MEASURES) {
           if (measures[m] != null && cnt[gName]?.[pk]?.[m]) {
             measures[m] = measures[m] / cnt[gName][pk][m];
           }
         }
+        for (const [m, v] of Object.entries(measures)) {
+          measures[m] = roundVal(v);
+        }
+      }
+    }
+    for (const bucket of [M, W]) {
+      for (const [pk, measures] of Object.entries(bucket)) {
         for (const [m, v] of Object.entries(measures)) {
           measures[m] = roundVal(v);
         }
@@ -218,8 +233,9 @@ function aggregateChannelCM(dailyChannels) {
   return { Y, Q, M, W, D };
 }
 
-function sumViews(views, componentKeys) {
+function sumViews(views, componentKeys, avgAvgMeasures = false) {
   const result = { Y: {}, Q: {}, M: {}, W: {}, D: {} };
+  const avgCnt = avgAvgMeasures ? { Y: {}, Q: {}, M: {}, W: {}, D: {} } : null;
   for (const gran of ['Y', 'Q', 'M', 'W', 'D']) {
     const allP = new Set();
     for (const k of componentKeys) {
@@ -227,11 +243,26 @@ function sumViews(views, componentKeys) {
     }
     for (const p of allP) {
       result[gran][p] = {};
+      if (avgCnt) { if (!avgCnt[gran][p]) avgCnt[gran][p] = {}; }
       for (const k of componentKeys) {
         const src = views[k]?.[gran]?.[p];
         if (!src) continue;
         for (const [m, v] of Object.entries(src)) {
-          result[gran][p][m] = roundVal((result[gran][p][m] || 0) + v);
+          if (avgAvgMeasures && AVG_MEASURES.has(m)) {
+            if (v) {
+              result[gran][p][m] = (result[gran][p][m] || 0) + v;
+              avgCnt[gran][p][m] = (avgCnt[gran][p][m] || 0) + 1;
+            }
+          } else {
+            result[gran][p][m] = roundVal((result[gran][p][m] || 0) + v);
+          }
+        }
+      }
+      if (avgAvgMeasures) {
+        for (const m of AVG_MEASURES) {
+          if (result[gran][p][m] != null && avgCnt[gran][p]?.[m]) {
+            result[gran][p][m] = roundVal(result[gran][p][m] / avgCnt[gran][p][m]);
+          }
         }
       }
     }
@@ -289,7 +320,21 @@ module.exports = async function handler(req, res) {
 
     let views = aggregate(allDaily);
 
-    views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스']);
+    views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스'], true);
+
+    // 구매자수: pf_ 합산 대신 'All' 행의 unique count로 덮어쓰기
+    const platformBuyers = views['platform__buyers'];
+    if (platformBuyers) {
+      for (const gran of ['Y', 'Q', 'M', 'W', 'D']) {
+        for (const [period, measures] of Object.entries(platformBuyers[gran] || {})) {
+          if (views.platform[gran]?.[period] && measures['구매자수'] != null) {
+            views.platform[gran][period]['구매자수'] = measures['구매자수'];
+          }
+        }
+      }
+      delete views['platform__buyers'];
+    }
+
     views.brand_total = sumViews(views, ['ss_total', 'coupang', 'b2b', 'etc']);
     views.grand_total = sumViews(views, ['platform', 'brand_total', 'overseas']);
 
