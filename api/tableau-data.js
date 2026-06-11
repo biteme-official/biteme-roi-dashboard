@@ -5,8 +5,8 @@ const API_VER = '3.24';
 const VIEWS = [
   { id: 'e53fb200-eb4b-42db-98f2-4c30ba519577', key: 'platform', hasSub: true, subPrefix: 'pf_' },
   { id: 'c75b28ac-3bf1-4f05-9633-f4dabe0782b8', key: 'ss_total', buyersFromAll: true },
-  { id: 'd846cbe3-1720-42f8-b5ff-3f9eaca3704f', key: 'ssfw' },
-  { id: '8e53722f-55a7-41c7-88e6-a37aa8c65ea7', key: 'compira' },
+  { id: 'd846cbe3-1720-42f8-b5ff-3f9eaca3704f', key: 'ssfw', normalizeDau: true },
+  { id: '8e53722f-55a7-41c7-88e6-a37aa8c65ea7', key: 'compira', normalizeDau: true },
   { id: '3062396f-f1fb-4d51-8014-5dac66a0a53e', key: 'coupang' },
   { id: 'df575f01-23f5-466d-8989-710881e9055c', key: 'b2b' },
   { id: 'ade7640b-6c24-4819-9de2-43e30af2941c', key: 'etc' },
@@ -104,9 +104,10 @@ function processView(csv, viewCfg) {
     const dayRaw = row['Day of day'];
     const monthRaw = row['Month of day'];
     const yearRaw = row['Year of day'];
-    const measure = row['Measure Names'];
+    const rawMeasure = row['Measure Names'];
+    const measure = (viewCfg.normalizeDau && rawMeasure === 'dau') ? 'Avg. dau' : rawMeasure;
     const valueRaw = row['Measure Values'];
-    const salesType = row['매출구분'];
+    const salesType = viewCfg.normalizeDau ? row['채널구분'] : row['매출구분'];
 
     if (!dayRaw || !monthRaw || !yearRaw) continue;
     const month = MONTH_NUM[monthRaw];
@@ -332,30 +333,18 @@ module.exports = async function handler(req, res) {
 
     views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스'], true);
 
-    // ss_total 구매자수: 'All' 행에서 추출한 값으로 덮어쓰기
-    const ssBuyers = views['ss_total__buyers'];
-    if (ssBuyers) {
+    // 구매자수: 'All' 행에서 추출한 unique count로 덮어쓰기
+    for (const baseKey of ['ss_total', 'platform', 'ssfw', 'compira']) {
+      const buyers = views[`${baseKey}__buyers`];
+      if (!buyers) continue;
       for (const gran of ['Y', 'Q', 'M', 'W', 'D']) {
-        for (const [period, measures] of Object.entries(ssBuyers[gran] || {})) {
-          if (views.ss_total[gran]?.[period] && measures['구매자수'] != null) {
-            views.ss_total[gran][period]['구매자수'] = measures['구매자수'];
+        for (const [period, measures] of Object.entries(buyers[gran] || {})) {
+          if (views[baseKey]?.[gran]?.[period] && measures['구매자수'] != null) {
+            views[baseKey][gran][period]['구매자수'] = measures['구매자수'];
           }
         }
       }
-      delete views['ss_total__buyers'];
-    }
-
-    // 구매자수: pf_ 합산 대신 'All' 행의 unique count로 덮어쓰기
-    const platformBuyers = views['platform__buyers'];
-    if (platformBuyers) {
-      for (const gran of ['Y', 'Q', 'M', 'W', 'D']) {
-        for (const [period, measures] of Object.entries(platformBuyers[gran] || {})) {
-          if (views.platform[gran]?.[period] && measures['구매자수'] != null) {
-            views.platform[gran][period]['구매자수'] = measures['구매자수'];
-          }
-        }
-      }
-      delete views['platform__buyers'];
+      delete views[`${baseKey}__buyers`];
     }
 
     views.brand_total = sumViews(views, ['ss_total', 'coupang', 'b2b', 'etc']);
