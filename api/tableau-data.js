@@ -12,6 +12,7 @@ const VIEWS = [
   { id: 'ade7640b-6c24-4819-9de2-43e30af2941c', key: 'etc' },
   { id: 'e47c337f-2eeb-4f65-a61c-89d17694c9d3', key: 'overseas' },
   { id: 'f091ac20-f5ae-4b5d-98f1-5682ab0fada2', key: 'etc_channel', isChannelCM: true },
+  { id: 'e8e85ab9-93ba-4763-8ab8-4e2c9e1a5d28', key: 'ss_gongu', viewFilters: { '세부채널': '스마트스토어' } },
 ];
 
 const AVG_MEASURES = new Set(['Avg. dau']);
@@ -87,11 +88,14 @@ async function signIn() {
   return { token: data.credentials.token, siteId: data.credentials.site.id };
 }
 
-async function fetchViewCSV(token, siteId, viewId) {
-  const url = `${TABLEAU_SERVER}/api/${API_VER}/sites/${siteId}/views/${viewId}/data`;
-  const resp = await fetch(url, {
-    headers: { 'X-Tableau-Auth': token }
-  });
+async function fetchViewCSV(token, siteId, viewId, viewFilters = {}) {
+  let url = `${TABLEAU_SERVER}/api/${API_VER}/sites/${siteId}/views/${viewId}/data`;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(viewFilters)) {
+    params.append(`vf_${k}`, v);
+  }
+  if (params.toString()) url += '?' + params.toString();
+  const resp = await fetch(url, { headers: { 'X-Tableau-Auth': token } });
   if (!resp.ok) throw new Error(`View ${viewId} fetch failed: ${resp.status}`);
   return resp.text();
 }
@@ -291,7 +295,7 @@ module.exports = async function handler(req, res) {
     token = auth.token;
 
     const csvs = await Promise.all(
-      VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id))
+      VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {}))
     );
 
     const allDaily = {};
