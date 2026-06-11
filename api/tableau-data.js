@@ -4,7 +4,7 @@ const API_VER = '3.24';
 
 const VIEWS = [
   { id: 'e53fb200-eb4b-42db-98f2-4c30ba519577', key: 'platform', hasSub: true, subPrefix: 'pf_' },
-  { id: 'c75b28ac-3bf1-4f05-9633-f4dabe0782b8', key: 'ss_total' },
+  { id: 'c75b28ac-3bf1-4f05-9633-f4dabe0782b8', key: 'ss_total', buyersFromAll: true },
   { id: 'd846cbe3-1720-42f8-b5ff-3f9eaca3704f', key: 'ssfw' },
   { id: '8e53722f-55a7-41c7-88e6-a37aa8c65ea7', key: 'compira' },
   { id: '3062396f-f1fb-4d51-8014-5dac66a0a53e', key: 'coupang' },
@@ -147,10 +147,20 @@ function processView(csv, viewCfg) {
       if (!daily[subKey][dateStr]) daily[subKey][dateStr] = {};
       daily[subKey][dateStr][measure] = value;
     } else {
-      const key = viewCfg.key;
-      if (!daily[key]) daily[key] = {};
-      if (!daily[key][dateStr]) daily[key][dateStr] = {};
-      daily[key][dateStr][measure] = value;
+      if (viewCfg.buyersFromAll && measure === '구매자수') {
+        const st = (salesType || '').trim();
+        if (st === 'All' || st === '') {
+          const bKey = `${viewCfg.key}__buyers`;
+          if (!daily[bKey]) daily[bKey] = {};
+          if (!daily[bKey][dateStr]) daily[bKey][dateStr] = {};
+          daily[bKey][dateStr]['구매자수'] = value;
+        }
+      } else {
+        const key = viewCfg.key;
+        if (!daily[key]) daily[key] = {};
+        if (!daily[key][dateStr]) daily[key][dateStr] = {};
+        daily[key][dateStr][measure] = value;
+      }
     }
   }
   return daily;
@@ -321,6 +331,19 @@ module.exports = async function handler(req, res) {
     let views = aggregate(allDaily);
 
     views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스'], true);
+
+    // ss_total 구매자수: 'All' 행에서 추출한 값으로 덮어쓰기
+    const ssBuyers = views['ss_total__buyers'];
+    if (ssBuyers) {
+      for (const gran of ['Y', 'Q', 'M', 'W', 'D']) {
+        for (const [period, measures] of Object.entries(ssBuyers[gran] || {})) {
+          if (views.ss_total[gran]?.[period] && measures['구매자수'] != null) {
+            views.ss_total[gran][period]['구매자수'] = measures['구매자수'];
+          }
+        }
+      }
+      delete views['ss_total__buyers'];
+    }
 
     // 구매자수: pf_ 합산 대신 'All' 행의 unique count로 덮어쓰기
     const platformBuyers = views['platform__buyers'];
