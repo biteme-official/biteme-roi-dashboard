@@ -337,6 +337,27 @@ module.exports = async function handler(req, res) {
 
     views.platform = sumViews(views, ['pf_상품', 'pf_수수료', 'pf_제품', 'pf_서비스'], true);
 
+    // platform M/W Avg. dau를 D에서 재집계 — sumViews가 gran별 독립 평균을 내면
+    // 하위 뷰마다 커버리지가 달라 월간/주간 합계가 일간 합산과 불일치하는 문제 수정
+    for (const m of AVG_MEASURES) {
+      const dMap = views.platform.D;
+      for (const pk of Object.keys(views.platform.M)) {
+        let s = 0, found = false;
+        for (const [ds, dm] of Object.entries(dMap)) {
+          if (ds.substring(0, 7) === pk && dm[m] != null) { s += dm[m]; found = true; }
+        }
+        if (found && views.platform.M[pk]) views.platform.M[pk][m] = roundVal(s);
+      }
+      for (const pk of Object.keys(views.platform.W)) {
+        let s = 0, found = false;
+        for (const [ds, dm] of Object.entries(dMap)) {
+          const [yr, mo, dy] = ds.split('-');
+          if (isoWeekKey(yr, mo, dy) === pk && dm[m] != null) { s += dm[m]; found = true; }
+        }
+        if (found && views.platform.W[pk]) views.platform.W[pk][m] = roundVal(s);
+      }
+    }
+
     // 구매자수: 'All' 행에서 추출한 unique count로 덮어쓰기
     for (const baseKey of ['ss_total', 'platform', 'ssfw', 'compira']) {
       const buyers = views[`${baseKey}__buyers`];
