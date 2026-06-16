@@ -136,6 +136,19 @@ table.data th.group-hd-grade-new{background:#065F46;text-align:center;border-lef
 table.data th.group-hd-grade-exist{background:#1E40AF;text-align:center;border-left:3px solid #93C5FD!important}
 table.data th.group-hd-grade-vvip{background:#6B21A8;text-align:center;border-left:3px solid #D8B4FE!important}
 .b2b-grade-toggle-btn:hover,.b2b-grade-toggle-btn.active{border-color:#6B21A8;color:#6B21A8;background:#FAF5FF}
+table.data th.col-narrow,table.data td.col-narrow{width:66px;min-width:66px;max-width:66px;padding-left:5px!important;padding-right:5px!important}
+table.data tr.grp-hd2 th.grp-sect-nbd{background:#0C4A6E}
+table.data tr.grp-hd2 th.grp-sect-gbd{background:#7C2D12}
+table.data tr.grp-hd2 th.grp-sect-gongu{background:#78350F}
+table.data tr.grp-hd2 th.grp-sect-new{background:#064E3B}
+table.data tr.grp-hd2 th.grp-sect-exist{background:#1E3A8A}
+table.data tr.grp-hd2 th.grp-sect-vvip{background:#581C87}
+table.data th.grp-left-nbd,table.data td.grp-left-nbd{border-left:3px solid #7DD3FC!important}
+table.data th.grp-left-gbd,table.data td.grp-left-gbd{border-left:3px solid #FDBA74!important}
+table.data th.grp-left-gongu,table.data td.grp-left-gongu{border-left:3px solid #FCD34D!important}
+table.data th.grp-left-new,table.data td.grp-left-new{border-left:3px solid #6EE7B7!important}
+table.data th.grp-left-exist,table.data td.grp-left-exist{border-left:3px solid #93C5FD!important}
+table.data th.grp-left-vvip,table.data td.grp-left-vvip{border-left:3px solid #D8B4FE!important}
 table.data thead tr.grp-hd2 th:first-child{position:relative;left:auto;min-width:auto;text-align:center}
 #deliveryToggleWrap{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
 .toggle-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
@@ -542,6 +555,7 @@ function renderDeliveryDetail(){
     {key:'거래액',label:'거래액'},
     {key:'순매출',label:'순매출'},
     {key:'공헌이익',label:'공헌이익'},
+    {key:'ROI',label:'ROI',ratio:true},
   ];
   const NBD=[
     {key:'스스_N배송 주문건수',label:'주문건수'},
@@ -570,9 +584,9 @@ function renderDeliveryDetail(){
     return '';
   };
   let thead=`<tr><th rowspan="2">기간</th><th colspan="${COMMON.length}" class="group-hd-common">공통</th><th colspan="${NBD.length}" class="group-hd-nbd">N배송</th><th colspan="${GBD.length}" class="group-hd-gbd">일반배송</th></tr><tr class="grp-hd2">`;
-  [...COMMON,...NBD,...GBD].forEach(m=>{
-    thead+=`<th class="${detailCls(m)}">${m.label}</th>`;
-  });
+  COMMON.forEach(m=>{thead+=`<th class="${detailCls(m)}">${m.label}</th>`;});
+  NBD.forEach((m,i)=>{thead+=`<th class="${detailCls(m)} grp-sect-nbd${i===0?' grp-left-nbd':''}">${m.label}</th>`;});
+  GBD.forEach((m,i)=>{thead+=`<th class="${detailCls(m)} grp-sect-gbd${i===0?' grp-left-gbd':''}">${m.label}</th>`;});
   thead+='</tr>';
   const fmtV=(v,ratio)=>{
     if(v==null)return '<span class="val-zero">-</span>';
@@ -584,10 +598,9 @@ function renderDeliveryDetail(){
   for(const p of periods){
     const row=lvl[p]||{};
     tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
-    [...COMMON,...NBD,...GBD].forEach(m=>{
-      const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);
-      tbody+=`<td class="${detailCls(m)}">${fmtV(val,m.ratio)}</td>`;
-    });
+    COMMON.forEach(m=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}">${fmtV(val,m.ratio)}</td>`;});
+    NBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}${i===0?' grp-left-nbd':''}">${fmtV(val,m.ratio)}</td>`;});
+    GBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}${i===0?' grp-left-gbd':''}">${fmtV(val,m.ratio)}</td>`;});
     tbody+='</tr>';
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>N배송 vs 일반배송 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
@@ -767,6 +780,7 @@ function renderB2bGradeDetail(){
     {key:'거래액',label:'거래액'},
     {key:'순매출',label:'순매출'},
     {key:'공헌이익',label:'공헌이익'},
+    {key:'ROI',label:'ROI',ratio:true},
   ];
   const GRADE_KEYS={
     '신규':{ord:'B2B_신규 주문건수',gmv:'신규 거래액',ns:'신규 순매출',cost:'신규 원가'},
@@ -785,8 +799,9 @@ function renderB2bGradeDetail(){
   thead+=`<th colspan="${GRADE_LABELS.length}" class="group-hd-grade-exist">기존</th>`;
   thead+=`<th colspan="${GRADE_LABELS.length}" class="group-hd-grade-vvip">VIP</th>`;
   thead+=`</tr><tr class="grp-hd2">`;
+  const GRADE_GRP={신규:'new',기존:'exist',VIP:'vvip'};
   COMMON.forEach(m=>{thead+=`<th class="${commonCls(m)}">${m.label}</th>`;});
-  GRADE_NAMES.forEach(()=>{GRADE_LABELS.forEach((l,i)=>{thead+=`<th class="${gradeCls(i)}">${l}</th>`;});});
+  GRADE_NAMES.forEach(name=>{const g=GRADE_GRP[name];GRADE_LABELS.forEach((l,i)=>{const cls=[gradeCls(i),`grp-sect-${g}`,i===0?`grp-left-${g} col-narrow`:''].filter(Boolean).join(' ');thead+=`<th class="${cls}">${l}</th>`;});});
   thead+='</tr>';
 
   const fmtV=(v,ratio)=>{
@@ -815,13 +830,14 @@ function renderB2bGradeDetail(){
       tbody+=`<td class="${commonCls(m)}">${fmtV(v,m.ratio)}</td>`;
     });
     GRADE_NAMES.forEach(name=>{
+      const g=GRADE_GRP[name];
       const keys=GRADE_KEYS[name];
       const gradeNS=gv(row,keys.ns);
       const gradeCost=gv(row,keys.cost);
       const gradeCM=computeGradeCM(row,gradeNS,gradeCost);
       const gradeROI=(gradeCM!=null&&gradeNS)?gradeCM/gradeNS*100:null;
       const vals=[gv(row,keys.ord),gv(row,keys.gmv),gradeNS,gradeCost,gradeCM,gradeROI];
-      vals.forEach((v,i)=>{tbody+=`<td class="${gradeCls(i)}">${fmtV(v,i===5)}</td>`;});
+      vals.forEach((v,i)=>{const cls=[gradeCls(i),i===0?`grp-left-${g} col-narrow`:''].filter(Boolean).join(' ');tbody+=`<td class="${cls}">${fmtV(v,i===5)}</td>`;});
     });
     tbody+='</tr>';
   }
@@ -857,6 +873,7 @@ function renderGonguDetail(){
     {key:'거래액',label:'거래액',src:'ss'},
     {key:'순매출',label:'순매출',src:'ss'},
     {key:'공헌이익',label:'공헌이익',src:'ss'},
+    {key:'ROI',label:'ROI',src:'ss',ratio:true},
   ];
   const GONGU=[
     {key:'주문건수',label:'주문건수',src:'gongu'},
@@ -881,7 +898,8 @@ function renderGonguDetail(){
     return '';
   };
   let thead=`<tr><th rowspan="2">기간</th><th colspan="${COMMON.length}" class="group-hd-common">공통</th><th colspan="${GONGU.length}" class="group-hd-gongu">공구</th></tr><tr class="grp-hd2">`;
-  [...COMMON,...GONGU].forEach(m=>{thead+=`<th class="${gonguCls(m)}">${m.label}</th>`;});
+  COMMON.forEach(m=>{thead+=`<th class="${gonguCls(m)}">${m.label}</th>`;});
+  GONGU.forEach((m,i)=>{thead+=`<th class="${gonguCls(m)} grp-sect-gongu${i===0?' grp-left-gongu':''}">${m.label}</th>`;});
   thead+='</tr>';
   const fmtV=(v,ratio,isGongu)=>{
     if(v==null)return isGongu?'0':'<span class="val-zero">-</span>';
@@ -894,31 +912,20 @@ function renderGonguDetail(){
     const ssRow=ssLvl[p]||{};
     const gonguRow=gonguLvl[p]||{};
     tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
-    [...COMMON,...GONGU].forEach(m=>{
+    const _gonguVal=(m)=>{
       const isGongu=m.src==='gongu'||m.src==='both';
       let val;
-      if(m.isCm){
-        val=gCM(gonguRow);
-      } else if(m.isRoi){
-        const cm=gCM(gonguRow);const ns=gonguRow['순매출']||0;
-        val=ns?cm/ns*100:null;
-      } else if(m.isContrib){
-        const cm=gCM(gonguRow);const ssCM=rv(ssRow,'공헌이익');
-        val=ssCM?cm/ssCM*100:null;
-      } else if(m.isContribGmv){
-        const gGmv=gonguRow['거래액']||0;const ssGmv=gv(ssRow,'거래액');
-        val=ssGmv?gGmv/ssGmv*100:null;
-      } else if(m.key==='_mkt'){
-        val=gv(ssRow,'스스_마케팅');
-      } else if(m.isMktPct){
-        val=rv(ssRow,'스스_마케팅 비중');
-      } else {
-        const src=m.src==='gongu'?gonguRow:ssRow;
-        val=m.ratio||COMPUTED[m.key]?rv(src,m.key):gv(src,m.key);
-        if(isGongu&&val==null)val=0;
-      }
-      tbody+=`<td class="${gonguCls(m)}">${fmtV(val,m.ratio,isGongu)}</td>`;
-    });
+      if(m.isCm){val=gCM(gonguRow);}
+      else if(m.isRoi){const cm=gCM(gonguRow);const ns=gonguRow['순매출']||0;val=ns?cm/ns*100:null;}
+      else if(m.isContrib){const cm=gCM(gonguRow);const ssCM=rv(ssRow,'공헌이익');val=ssCM?cm/ssCM*100:null;}
+      else if(m.isContribGmv){const gGmv=gonguRow['거래액']||0;const ssGmv=gv(ssRow,'거래액');val=ssGmv?gGmv/ssGmv*100:null;}
+      else if(m.key==='_mkt'){val=gv(ssRow,'스스_마케팅');}
+      else if(m.isMktPct){val=rv(ssRow,'스스_마케팅 비중');}
+      else{const src=m.src==='gongu'?gonguRow:ssRow;val=m.ratio||COMPUTED[m.key]?rv(src,m.key):gv(src,m.key);if(isGongu&&val==null)val=0;}
+      return{val,isGongu};
+    };
+    COMMON.forEach(m=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}">${fmtV(val,m.ratio,isGongu)}</td>`;});
+    GONGU.forEach((m,i)=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}${i===0?' grp-left-gongu':''}">${fmtV(val,m.ratio,isGongu)}</td>`;});
     tbody+='</tr>';
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>공구 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
