@@ -13,6 +13,8 @@ const VIEWS = [
   { id: 'e47c337f-2eeb-4f65-a61c-89d17694c9d3', key: 'overseas' },
   { id: 'f091ac20-f5ae-4b5d-98f1-5682ab0fada2', key: 'etc_channel', isChannelCM: true },
   { id: 'e8e85ab9-93ba-4763-8ab8-4e2c9e1a5d28', key: 'ss_gongu', viewFilters: { '세부채널': '스마트스토어' } },
+  { id: 'e8e85ab9-93ba-4763-8ab8-4e2c9e1a5d28', key: 'ssfw_gongu', viewFilters: { '세부채널': '스마트스토어_ssfw' } },
+  { id: 'e8e85ab9-93ba-4763-8ab8-4e2c9e1a5d28', key: 'compira_gongu', viewFilters: { '세부채널': '스마트스토어_모멘테일' } },
 ];
 
 const AVG_MEASURES = new Set(['Avg. dau']);
@@ -92,7 +94,8 @@ async function fetchViewCSV(token, siteId, viewId, viewFilters = {}) {
   let url = `${TABLEAU_SERVER}/api/${API_VER}/sites/${siteId}/views/${viewId}/data`;
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(viewFilters)) {
-    params.append(`vf_${k}`, v);
+    if (Array.isArray(v)) { v.forEach(val => params.append(`vf_${k}`, val)); }
+    else { params.append(`vf_${k}`, v); }
   }
   if (params.toString()) url += '?' + params.toString();
   const resp = await fetch(url, { headers: { 'X-Tableau-Auth': token } });
