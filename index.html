@@ -316,12 +316,16 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <button id="deliveryToggleBtn" class="toggle-btn delivery-toggle-btn" onclick="toggleDeliveryDetail()">N배송 vs 일반배송 상세 펼치기</button>
     <button id="gonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleGonguDetail()">공구 상세 펼치기</button>
     <button id="b2bGradeToggleBtn" class="toggle-btn b2b-grade-toggle-btn" onclick="toggleB2bGradeDetail()" style="display:none">고객 등급별 비교 상세 펼치기 ▼</button>
+    <button id="ssfwGonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleSsfwGonguDetail()" style="display:none">공구 상세 펼치기 ▼</button>
+    <button id="compiraGonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleCompiraGonguDetail()" style="display:none">공구 상세 펼치기 ▼</button>
   </div>
 </div>
 
 <div id="deliveryDetailSection" style="display:none"></div>
 <div id="gonguDetailSection" style="display:none"></div>
 <div id="b2bGradeDetailSection" style="display:none"></div>
+<div id="ssfwGonguDetailSection" style="display:none"></div>
+<div id="compiraGonguDetailSection" style="display:none"></div>
 
 <div class="section">
   <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
@@ -460,6 +464,8 @@ let curDiv='grand_total', selYears=new Set(['2026']), curGran='M', selMonths=new
 let showDeliveryDetail=false;
 let showGonguDetail=false;
 let showB2bGradeDetail=false;
+let showSsfwGonguDetail=false;
+let showCompiraGonguDetail=false;
 const promoMemos = JSON.parse(localStorage.getItem('biteme_promo_memos')||'{}');
 function savePromo(weekKey,val){promoMemos[curDiv+'_'+weekKey]=val;localStorage.setItem('biteme_promo_memos',JSON.stringify(promoMemos));}
 function getPromo(weekKey){return promoMemos[curDiv+'_'+weekKey]||'';}
@@ -578,6 +584,7 @@ function renderDeliveryDetail(){
     {key:'스스_일반배송 주문단가',label:'주문단가'},
   ];
   const detailCls=m=>{
+    if(['주문건수','스스_N배송 주문건수','스스_일반배송 주문건수'].includes(m.key))return 'col-narrow';
     if(m.key==='순매출'||m.key==='N배송 순매출'||m.key==='일반배송 순매출')return 'col-ns';
     if(['공헌이익','스스_N배송 공헌이익','스스_일반배송 공헌이익'].includes(m.key))return 'col-cm';
     if(m.ratio)return 'col-pct';
@@ -635,14 +642,18 @@ function renderPNL(){
   // Toggle button visibility
   const dwrap=document.getElementById('deliveryToggleWrap');
   if(dwrap){
-    const isss=curDiv==='ss_total', isb2b=curDiv==='b2b';
-    dwrap.style.display=(isss||isb2b)?'flex':'none';
+    const isss=curDiv==='ss_total', isb2b=curDiv==='b2b', isssfw=curDiv==='ssfw', iscompira=curDiv==='compira';
+    dwrap.style.display=(isss||isb2b||isssfw||iscompira)?'flex':'none';
     const dbtn=document.getElementById('deliveryToggleBtn');
     if(dbtn){dbtn.style.display=isss?'':'none';dbtn.textContent=showDeliveryDetail?'N배송 vs 일반배송 상세 접기 ▲':'N배송 vs 일반배송 상세 펼치기 ▼';dbtn.classList.toggle('active',showDeliveryDetail);}
     const gbtn=document.getElementById('gonguToggleBtn');
     if(gbtn){gbtn.style.display=isss?'':'none';gbtn.textContent=showGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';gbtn.classList.toggle('active',showGonguDetail);}
     const gbtn2=document.getElementById('b2bGradeToggleBtn');
     if(gbtn2){gbtn2.style.display=isb2b?'':'none';gbtn2.textContent=showB2bGradeDetail?'고객 등급별 비교 상세 접기 ▲':'고객 등급별 비교 상세 펼치기 ▼';gbtn2.classList.toggle('active',showB2bGradeDetail);}
+    const sgbtn=document.getElementById('ssfwGonguToggleBtn');
+    if(sgbtn){sgbtn.style.display=isssfw?'':'none';sgbtn.textContent=showSsfwGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';sgbtn.classList.toggle('active',showSsfwGonguDetail);}
+    const cgbtn=document.getElementById('compiraGonguToggleBtn');
+    if(cgbtn){cgbtn.style.display=iscompira?'':'none';cgbtn.textContent=showCompiraGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';cgbtn.classList.toggle('active',showCompiraGonguDetail);}
   }
 
   // Header
@@ -757,6 +768,8 @@ function renderPNL(){
   renderDeliveryDetail();
   renderGonguDetail();
   renderB2bGradeDetail();
+  renderSsfwGonguDetail();
+  renderCompiraGonguDetail();
 }
 
 function toggleB2bGradeDetail(){
@@ -850,19 +863,27 @@ function toggleGonguDetail(){
   showGonguDetail=!showGonguDetail;
   renderPNL();
 }
+function toggleSsfwGonguDetail(){
+  showSsfwGonguDetail=!showSsfwGonguDetail;
+  renderPNL();
+}
+function toggleCompiraGonguDetail(){
+  showCompiraGonguDetail=!showCompiraGonguDetail;
+  renderPNL();
+}
 
-function renderGonguDetail(){
-  const sec=document.getElementById('gonguDetailSection');
+function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKey}){
+  const sec=document.getElementById(sectionId);
   if(!sec)return;
-  if(!showGonguDetail||curDiv!=='ss_total'){sec.style.display='none';return;}
-  const gonguVD=D.views['ss_gongu'];
-  if(!gonguVD){sec.style.display='none';return;}
-  const ssVD=getVD();
+  if(!show||curDiv!==divCheck){sec.style.display='none';return;}
+  const gonguVD=D.views[gonguKey];
+  const parentVD=D.views[parentDivKey];
+  if(!parentVD){sec.style.display='none';return;}
   const g=curGran==='WD'?'W':curGran;
-  const gonguLvl=gonguVD[g]||{};
-  const ssLvl=ssVD?ssVD[g]||{}:{};
-  // ss_total 기간 기준으로 표시 (공구 데이터 없는 날도 0으로 노출)
-  const periods=Object.keys(ssLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+  const gonguLvl=gonguVD?gonguVD[g]||{}:{};
+  const parentLvl=parentVD[g]||{};
+  let periods=Object.keys(parentLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+  if(curGran==='D'&&selMonths.size>0) periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
 
   const gCM=gr=>{
     return (gr['순매출']||0)-(gr['원가총액']||0)-(gr['공구수수료(최종)']||0)-(gr['채널수수료(최종)']||0)-(gr['물류비 비중(최종)']||0);
@@ -892,6 +913,7 @@ function renderGonguDetail(){
     {key:'_mkt_pct',label:'비중(%)',src:'ss',isMktPct:true,ratio:true},
   ];
   const gonguCls=m=>{
+    if(m.key==='주문건수')return 'col-narrow';
     if(m.key==='순매출')return 'col-ns';
     if(m.key==='공헌이익'||m.isCm)return 'col-cm';
     if(m.ratio)return 'col-pct';
@@ -909,7 +931,7 @@ function renderGonguDetail(){
   };
   let tbody='';
   for(const p of periods){
-    const ssRow=ssLvl[p]||{};
+    const ssRow=parentLvl[p]||{};
     const gonguRow=gonguLvl[p]||{};
     tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
     const _gonguVal=(m)=>{
@@ -930,6 +952,16 @@ function renderGonguDetail(){
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>공구 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
   sec.style.display='block';
+}
+
+function renderGonguDetail(){
+  _renderGonguDetailGeneric({show:showGonguDetail,divCheck:'ss_total',sectionId:'gonguDetailSection',gonguKey:'ss_gongu',parentDivKey:'ss_total'});
+}
+function renderSsfwGonguDetail(){
+  _renderGonguDetailGeneric({show:showSsfwGonguDetail,divCheck:'ssfw',sectionId:'ssfwGonguDetailSection',gonguKey:'ssfw_gongu',parentDivKey:'ssfw'});
+}
+function renderCompiraGonguDetail(){
+  _renderGonguDetailGeneric({show:showCompiraGonguDetail,divCheck:'compira',sectionId:'compiraGonguDetailSection',gonguKey:'compira_gongu',parentDivKey:'compira'});
 }
 
 function renderChannelWD(ch,periods,lvl,channels){
