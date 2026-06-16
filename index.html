@@ -55,6 +55,18 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .kpi .kl{font-size:10px;color:var(--text-sub);font-weight:500;margin-bottom:4px}
 .kpi .kv{font-size:20px;font-weight:700;letter-spacing:-.3px}
 .kpi .ks{font-size:10px;margin-top:2px}.up{color:var(--green)}.dn{color:var(--red)}
+.kpi-section{margin-bottom:14px}
+.kpi-total-label{font-size:10px;font-weight:700;color:var(--text-sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;padding:0 2px;display:none}
+.kpi-total-label.show{display:block}
+.kpi-month-block{margin-top:8px;padding-left:16px;border-left:3px solid var(--border)}
+.kpi-month-label{font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:5px;display:flex;align-items:center;gap:8px}
+.kpi-month-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.kpi-month-tag{background:var(--navy-light);color:#fff;border-radius:5px;padding:2px 9px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.kpi-row--month{gap:7px}
+.kpi-row--month .kpi{padding:9px 12px;background:#F8FAFC;border-color:#E8EDF5}
+.kpi-row--month .kpi::before{height:2px;opacity:.7}
+.kpi-row--month .kpi .kl{font-size:9px;color:var(--text-muted)}
+.kpi-row--month .kpi .kv{font-size:15px;font-weight:700;letter-spacing:-.2px}
 
 .table-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
 .table-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
@@ -120,6 +132,10 @@ table.data th.group-hd-common{background:#334155;text-align:center}
 table.data th.group-hd-nbd{background:#0369A1;text-align:center;border-left:3px solid #7DD3FC!important}
 table.data th.group-hd-gbd{background:#9A3412;text-align:center;border-left:3px solid #FDBA74!important}
 table.data th.group-hd-gongu{background:#92400E;text-align:center;border-left:3px solid #FCD34D!important}
+table.data th.group-hd-grade-new{background:#065F46;text-align:center;border-left:3px solid #6EE7B7!important}
+table.data th.group-hd-grade-exist{background:#1E40AF;text-align:center;border-left:3px solid #93C5FD!important}
+table.data th.group-hd-grade-vvip{background:#6B21A8;text-align:center;border-left:3px solid #D8B4FE!important}
+.b2b-grade-toggle-btn:hover,.b2b-grade-toggle-btn.active{border-color:#6B21A8;color:#6B21A8;background:#FAF5FF}
 table.data thead tr.grp-hd2 th:first-child{position:relative;left:auto;min-width:auto;text-align:center}
 #deliveryToggleWrap{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
 .toggle-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
@@ -267,6 +283,8 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   <div class="ctrl-group"><span class="ctrl-label" id="infoLabel">-</span></div>
 </div>
 
+<div class="kpi-section">
+<div class="kpi-total-label" id="kpiTotalLabel">전체 TOTAL</div>
 <div class="kpi-row">
   <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div></div>
   <div class="kpi c-green"><div class="kl">순매출</div><div class="kv" id="k-n">-</div><div class="ks" id="k-n-c"></div></div>
@@ -275,6 +293,8 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   <div class="kpi c-amber"><div class="kl">ROI</div><div class="kv" id="k-r">-</div><div class="ks" id="k-r-c"></div></div>
   <div class="kpi c-red"><div class="kl">주문건수</div><div class="kv" id="k-o">-</div><div class="ks" id="k-o-c"></div></div>
 </div>
+<div id="monthKpiContainer"></div>
+</div>
 
 <div class="table-wrap">
   <div class="table-header"><h3 id="tableTitle">P&L 상세</h3></div>
@@ -282,11 +302,13 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   <div id="deliveryToggleWrap" style="display:none">
     <button id="deliveryToggleBtn" class="toggle-btn delivery-toggle-btn" onclick="toggleDeliveryDetail()">N배송 vs 일반배송 상세 펼치기</button>
     <button id="gonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleGonguDetail()">공구 상세 펼치기</button>
+    <button id="b2bGradeToggleBtn" class="toggle-btn b2b-grade-toggle-btn" onclick="toggleB2bGradeDetail()" style="display:none">고객 등급별 비교 상세 펼치기 ▼</button>
   </div>
 </div>
 
 <div id="deliveryDetailSection" style="display:none"></div>
 <div id="gonguDetailSection" style="display:none"></div>
+<div id="b2bGradeDetailSection" style="display:none"></div>
 
 <div class="section">
   <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
@@ -384,7 +406,7 @@ const MEASURES = [
   {key:'스스_마케팅 비중',label:'스스 마케팅%',row:'',ratio:true}
 ];
 
-const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)']};
+const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)'],'Avg. dau':['Avg. dau','dau']};
 const RATIO_NUMER = {'매출원가율':'매출원가','마케팅비중':'마케팅비용','운반비성 비중':'운반비성 변동비','마케팅성 비중':'마케팅성 변동비','PG성 비중':'PG수수료성 변동비','ROI':'공헌이익','스스_마케팅 비중':'스스_마케팅'};
 const COMPUTED = {
   'CVR':    obj=>{const b=gv(obj,'구매자수'),d=gv(obj,'Avg. dau');return b!=null&&d?b/d*100:null;},
@@ -424,6 +446,7 @@ const GRAN_NAMES = {M:'월간',W:'주간',D:'일간',WD:'주간+일간'};
 let curDiv='grand_total', selYears=new Set(['2026']), curGran='M', selMonths=new Set(), charts={};
 let showDeliveryDetail=false;
 let showGonguDetail=false;
+let showB2bGradeDetail=false;
 const promoMemos = JSON.parse(localStorage.getItem('biteme_promo_memos')||'{}');
 function savePromo(weekKey,val){promoMemos[curDiv+'_'+weekKey]=val;localStorage.setItem('biteme_promo_memos',JSON.stringify(promoMemos));}
 function getPromo(weekKey){return promoMemos[curDiv+'_'+weekKey]||'';}
@@ -450,7 +473,7 @@ function fmt(v,ratio){
   if(v==null)return'-';
   if(ratio)return v.toFixed(typeof ratio==='number'?ratio:1)+'%';
   if(Math.abs(v)>=1e8)return(v/1e8).toFixed(1)+'억';
-  if(Math.abs(v)>=1e4)return(v/1e4).toFixed(0)+'만';
+  if(Math.abs(v)>=1e4)return Math.round(v/1e4).toLocaleString('ko-KR')+'만';
   return v.toLocaleString('ko-KR',{maximumFractionDigits:0});
 }
 
@@ -592,18 +615,21 @@ function renderPNL(){
   let lvl=vd[gKey]||{};
 
   // Filter measures that have data
-  const BRAND_NO_SS=['brand_total','coupang','b2b','etc'];
+  const BRAND_NO_SS=['brand_total','coupang','etc'];
   const DELIVERY_KEYS=['스스_N배송 주문건수','도착보장비용','N배송 거래액','N배송 순매출','N배송 원가','스스_N배송 공헌이익','스스_N배송 ROI','스스_N배송 주문단가','스스_일반배송 주문건수','일반배송비용','일반배송 거래액','일반배송 순매출','일반배송 원가','스스_일반배송 공헌이익','스스_일반배송 ROI','스스_일반배송 주문단가'];
-  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(m.key==='주문건수'&&curDiv==='ss_total')return false;if(DELIVERY_KEYS.includes(m.key))return false;if((m.key==='스스_마케팅'||m.key==='스스_마케팅 비중')&&curDiv==='ss_total')return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
+  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(m.key==='주문건수'&&(curDiv==='ss_total'||curDiv==='b2b'))return false;if(DELIVERY_KEYS.includes(m.key))return false;if((m.key==='스스_마케팅'||m.key==='스스_마케팅 비중')&&curDiv==='ss_total')return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
 
   // Toggle button visibility
   const dwrap=document.getElementById('deliveryToggleWrap');
   if(dwrap){
-    dwrap.style.display=curDiv==='ss_total'?'flex':'none';
+    const isss=curDiv==='ss_total', isb2b=curDiv==='b2b';
+    dwrap.style.display=(isss||isb2b)?'flex':'none';
     const dbtn=document.getElementById('deliveryToggleBtn');
-    if(dbtn){dbtn.textContent=showDeliveryDetail?'N배송 vs 일반배송 상세 접기 ▲':'N배송 vs 일반배송 상세 펼치기 ▼';dbtn.classList.toggle('active',showDeliveryDetail);}
+    if(dbtn){dbtn.style.display=isss?'':'none';dbtn.textContent=showDeliveryDetail?'N배송 vs 일반배송 상세 접기 ▲':'N배송 vs 일반배송 상세 펼치기 ▼';dbtn.classList.toggle('active',showDeliveryDetail);}
     const gbtn=document.getElementById('gonguToggleBtn');
-    if(gbtn){gbtn.textContent=showGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';gbtn.classList.toggle('active',showGonguDetail);}
+    if(gbtn){gbtn.style.display=isss?'':'none';gbtn.textContent=showGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';gbtn.classList.toggle('active',showGonguDetail);}
+    const gbtn2=document.getElementById('b2bGradeToggleBtn');
+    if(gbtn2){gbtn2.style.display=isb2b?'':'none';gbtn2.textContent=showB2bGradeDetail?'고객 등급별 비교 상세 접기 ▲':'고객 등급별 비교 상세 펼치기 ▼';gbtn2.classList.toggle('active',showB2bGradeDetail);}
   }
 
   // Header
@@ -698,14 +724,11 @@ function renderPNL(){
   }
   document.getElementById('dBody').innerHTML=html;
 
-  // KPI — filtered periods when month active, else selected years
+  // Total KPI — always shows selected year totals regardless of month filter
   let kpiData={};
-  if(curGran==='D'&&selMonths.size>0){
-    for(let p of periods){let pd=lvl[p];if(!pd)continue;for(let[k,v] of Object.entries(pd)){if(v==null)continue;if(!kpiData[k])kpiData[k]=0;kpiData[k]+=v;}}
-  } else {
-    for(let yr of selYears){let yd=vd.Y[yr];if(!yd)continue;for(let[k,v] of Object.entries(yd)){if(v==null)continue;if(!kpiData[k])kpiData[k]=0;kpiData[k]+=v;}}
-  }
+  for(let yr of selYears){let yd=vd.Y[yr];if(!yd)continue;for(let[k,v] of Object.entries(yd)){if(v==null)continue;if(!kpiData[k])kpiData[k]=0;kpiData[k]+=v;}}
   setKPIs(kpiData);
+  renderMonthKPIs(vd['D']||{});
 
   let viewName=VIEW_NAMES[curDiv]||curDiv;
   document.getElementById('tableTitle').textContent=viewName+' P&L 상세';
@@ -720,6 +743,91 @@ function renderPNL(){
   }
   renderDeliveryDetail();
   renderGonguDetail();
+  renderB2bGradeDetail();
+}
+
+function toggleB2bGradeDetail(){
+  showB2bGradeDetail=!showB2bGradeDetail;
+  renderPNL();
+}
+
+function renderB2bGradeDetail(){
+  const sec=document.getElementById('b2bGradeDetailSection');
+  if(!sec)return;
+  if(!showB2bGradeDetail||curDiv!=='b2b'){sec.style.display='none';return;}
+  const vd=getVD();if(!vd){sec.style.display='none';return;}
+  const g=curGran==='WD'?'W':curGran;
+  const lvl=vd[g]||{};
+  const periods=curGran==='WD'
+    ?Object.keys(lvl).filter(k=>selYears.has(yearOfKey(k))).sort()
+    :getPeriods();
+
+  const COMMON=[
+    {key:'주문건수',label:'주문건수'},
+    {key:'거래액',label:'거래액'},
+    {key:'순매출',label:'순매출'},
+    {key:'공헌이익',label:'공헌이익'},
+  ];
+  const GRADE_KEYS={
+    '신규':{ord:'B2B_신규 주문건수',gmv:'신규 거래액',ns:'신규 순매출',cost:'신규 원가'},
+    '기존':{ord:'B2B_기존 주문건수',gmv:'기존 거래액',ns:'기존 순매출',cost:'기존 원가'},
+    'VIP':{ord:'B2B_VIP 주문건수',gmv:'VIP 거래액',ns:'VIP 순매출',cost:'VIP 원가'},
+  };
+  const GRADE_LABELS=['주문건수','거래액','순매출','원가','공헌이익','ROI'];
+  const GRADE_NAMES=Object.keys(GRADE_KEYS);
+
+  const gradeCls=i=>(i===2?'col-ns':i===4?'col-cm':i===5?'col-pct':'');
+  const commonCls=m=>(m.key==='순매출'?'col-ns':m.key==='공헌이익'?'col-cm':m.ratio?'col-pct':'');
+
+  let thead=`<tr><th rowspan="2">기간</th>`;
+  thead+=`<th colspan="${COMMON.length}" class="group-hd-common">공통</th>`;
+  thead+=`<th colspan="${GRADE_LABELS.length}" class="group-hd-grade-new">신규</th>`;
+  thead+=`<th colspan="${GRADE_LABELS.length}" class="group-hd-grade-exist">기존</th>`;
+  thead+=`<th colspan="${GRADE_LABELS.length}" class="group-hd-grade-vvip">VIP</th>`;
+  thead+=`</tr><tr class="grp-hd2">`;
+  COMMON.forEach(m=>{thead+=`<th class="${commonCls(m)}">${m.label}</th>`;});
+  GRADE_NAMES.forEach(()=>{GRADE_LABELS.forEach((l,i)=>{thead+=`<th class="${gradeCls(i)}">${l}</th>`;});});
+  thead+='</tr>';
+
+  const fmtV=(v,ratio)=>{
+    if(v==null||v===0)return'<span class="val-zero">-</span>';
+    if(ratio)return v.toFixed(1)+'%';
+    const s=Math.round(v).toLocaleString('ko-KR');
+    return v<0?`<span class="val-neg">${s}</span>`:s;
+  };
+
+  const computeGradeCM=(row,gradeNS,gradeCost)=>{
+    if(gradeNS==null||gradeCost==null)return null;
+    const totalNS=gv(row,'순매출');if(!totalNS)return null;
+    const ship=gv(row,'운반비성 변동비')||0;
+    const mkt=gv(row,'마케팅성 변동비')||0;
+    const pg=gv(row,'PG수수료성 변동비')||0;
+    const varRatio=(ship+mkt+pg)/totalNS;
+    return gradeNS-gradeCost-(gradeNS*varRatio);
+  };
+
+  let tbody='';
+  for(const p of periods){
+    const row=lvl[p]||{};
+    tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
+    COMMON.forEach(m=>{
+      const v=m.ratio?rv(row,m.key):gv(row,m.key);
+      tbody+=`<td class="${commonCls(m)}">${fmtV(v,m.ratio)}</td>`;
+    });
+    GRADE_NAMES.forEach(name=>{
+      const keys=GRADE_KEYS[name];
+      const gradeNS=gv(row,keys.ns);
+      const gradeCost=gv(row,keys.cost);
+      const gradeCM=computeGradeCM(row,gradeNS,gradeCost);
+      const gradeROI=(gradeCM!=null&&gradeNS)?gradeCM/gradeNS*100:null;
+      const vals=[gv(row,keys.ord),gv(row,keys.gmv),gradeNS,gradeCost,gradeCM,gradeROI];
+      vals.forEach((v,i)=>{tbody+=`<td class="${gradeCls(i)}">${fmtV(v,i===5)}</td>`;});
+    });
+    tbody+='</tr>';
+  }
+
+  sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>고객 등급별 비교 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
+  sec.style.display='block';
 }
 
 function toggleGonguDetail(){
@@ -961,6 +1069,8 @@ function renderChannel(){
   ['k-cm','k-r','k-o'].forEach(id=>{document.getElementById(id).textContent='-';});
   ['k-g-c','k-n-c','k-c-c','k-cm-c','k-r-c','k-o-c'].forEach(id=>document.getElementById(id).textContent='');
   ['k-cm','k-r','k-o'].forEach(id=>document.getElementById(id).parentElement.querySelector('.kl').textContent='-');
+  const _mc=document.getElementById('monthKpiContainer');if(_mc)_mc.innerHTML='';
+  const _tl=document.getElementById('kpiTotalLabel');if(_tl)_tl.classList.remove('show');
 
   renderChannelChart(periods,lvl,channels);
 }
@@ -977,6 +1087,42 @@ function setKPIs(data){
     document.getElementById(id).textContent=fmt(ratio?rv(data,key):gv(data,key),ratio);
     document.getElementById(id+'-c').textContent='';
   });
+}
+
+function renderMonthKPIs(dailyLvl){
+  const container=document.getElementById('monthKpiContainer');
+  const totalLabel=document.getElementById('kpiTotalLabel');
+  if(!container)return;
+  const show=(curGran==='D'&&selMonths.size>0);
+  if(totalLabel){totalLabel.classList.toggle('show',show);}
+  if(!show){container.innerHTML='';return;}
+  let isFee=curDiv==='pf_수수료';
+  let thirdLabel=isFee?'위수탁 비중':'매출원가';
+  let html='';
+  for(const m of [...selMonths].sort()){
+    const mo=parseInt(m.substring(5));
+    const yr=m.substring(0,4);
+    const multiYr=selYears.size>1;
+    const monthLabel=multiYr?`${yr.substring(2)}.${mo}월`:`${mo}월`;
+    const data={};
+    for(const[day,row] of Object.entries(dailyLvl)){
+      if(day.substring(0,7)!==m||!row)continue;
+      for(const[k,v] of Object.entries(row)){if(v==null)continue;if(!data[k])data[k]=0;data[k]+=v;}
+    }
+    const thirdVal=isFee?fmt(rv(data,thirdLabel),true):fmt(gv(data,'매출원가'),false);
+    html+=`<div class="kpi-month-block">
+      <div class="kpi-month-label"><span class="kpi-month-tag">${monthLabel}</span></div>
+      <div class="kpi-row kpi-row--month">
+        <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv">${fmt(gv(data,'거래액'),false)}</div><div class="ks"></div></div>
+        <div class="kpi c-green"><div class="kl">순매출</div><div class="kv">${fmt(gv(data,'순매출'),false)}</div><div class="ks"></div></div>
+        <div class="kpi c-orange"><div class="kl">${thirdLabel}</div><div class="kv">${thirdVal}</div><div class="ks"></div></div>
+        <div class="kpi c-purple"><div class="kl">공헌이익</div><div class="kv">${fmt(gv(data,'공헌이익'),false)}</div><div class="ks"></div></div>
+        <div class="kpi c-amber"><div class="kl">ROI</div><div class="kv">${fmt(rv(data,'ROI'),true)}</div><div class="ks"></div></div>
+        <div class="kpi c-red"><div class="kl">주문건수</div><div class="kv">${fmt(gv(data,'주문건수'),false)}</div><div class="ks"></div></div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML=html;
 }
 
 function toggleRowHL(el){
