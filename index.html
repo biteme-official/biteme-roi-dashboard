@@ -969,7 +969,7 @@ function renderQCReview(){
     const a={},cn={};let ns=0;
     days.forEach(d=>{
       const r=dl[d];if(!r)return;
-      ['거래액','순매출','공헌이익','주문건수'].forEach(k=>{const v=gv(r,k);if(v!=null)a[k]=(a[k]||0)+v;});
+      ['거래액','순매출','공헌이익','주문건수','구매자수'].forEach(k=>{const v=gv(r,k);if(v!=null)a[k]=(a[k]||0)+v;});
       const nsv=gv(r,'순매출');
       if(nsv&&nsv>0){
         ['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(rk=>{const rt=rv(r,rk);if(rt!=null)cn[rk]=(cn[rk]||0)+nsv*rt/100;});
@@ -999,7 +999,7 @@ function renderQCReview(){
       const proratePrev=(vd)=>{
         const row=rowOf(vd,prevP);if(!row)return null;
         const pr={};
-        ['거래액','순매출','공헌이익','주문건수'].forEach(k=>{const v=gv(row,k);if(v!=null)pr[k]=Math.round(v/daysInPrev*maxDay);});
+        ['거래액','순매출','공헌이익','주문건수','구매자수'].forEach(k=>{const v=gv(row,k);if(v!=null)pr[k]=Math.round(v/daysInPrev*maxDay);});
         ['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(k=>{const v=rv(row,k);if(v!=null)pr[k]=v;});
         return Object.keys(pr).length?pr:row;
       };
