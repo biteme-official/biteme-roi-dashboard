@@ -401,7 +401,6 @@ const MEASURES = [
   {key:'PG성 비중',label:'PG성 비중',row:'',ratio:true,core:true},
   {key:'공헌이익',label:'공헌이익',row:'row-cm',core:true},
   {key:'ROI',label:'ROI',row:'',ratio:true,core:true},
-  {key:'주문건수',label:'주문건수',row:''},
   {key:'스스_도착보장 비중',label:'도착보장 비중',row:'',ratio:true},
   {key:'스스_N배송 주문건수',label:'주문건수',row:''},
   {key:'도착보장비용',label:'비용',row:''},
@@ -418,12 +417,10 @@ const MEASURES = [
   {key:'일반배송 원가',label:'원가',row:''},
   {key:'스스_일반배송 공헌이익',label:'공헌이익',row:''},
   {key:'스스_일반배송 ROI',label:'ROI',row:'',ratio:true},
-  {key:'스스_일반배송 주문단가',label:'주문단가',row:''},
-  {key:'스스_마케팅',label:'스스 마케팅',row:''},
-  {key:'스스_마케팅 비중',label:'스스 마케팅%',row:'',ratio:true}
+  {key:'스스_일반배송 주문단가',label:'주문단가',row:''}
 ];
 
-const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)'],'Avg. dau':['Avg. dau','dau']};
+const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)'],'Avg. dau':['Avg. dau','dau'],'운반비성 변동비':['운반비성 변동비','운반비성 변동비(세분화)'],'마케팅성 변동비':['마케팅성 변동비','마케팅성 변동비(세분화)']};
 const RATIO_NUMER = {'매출원가율':'매출원가','마케팅비중':'마케팅비용','운반비성 비중':'운반비성 변동비','마케팅성 비중':'마케팅성 변동비','PG성 비중':'PG수수료성 변동비','ROI':'공헌이익','스스_마케팅 비중':'스스_마케팅'};
 const COMPUTED = {
   'CVR':    obj=>{const b=gv(obj,'구매자수'),d=gv(obj,'Avg. dau');return b!=null&&d?b/d*100:null;},
@@ -637,7 +634,7 @@ function renderPNL(){
   // Filter measures that have data
   const BRAND_NO_SS=['brand_total','coupang','etc'];
   const DELIVERY_KEYS=['스스_N배송 주문건수','도착보장비용','N배송 거래액','N배송 순매출','N배송 원가','스스_N배송 공헌이익','스스_N배송 ROI','스스_N배송 주문단가','스스_일반배송 주문건수','일반배송비용','일반배송 거래액','일반배송 순매출','일반배송 원가','스스_일반배송 공헌이익','스스_일반배송 ROI','스스_일반배송 주문단가'];
-  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(m.key==='주문건수'&&(curDiv==='ss_total'||curDiv==='b2b'))return false;if(DELIVERY_KEYS.includes(m.key))return false;if((m.key==='스스_마케팅'||m.key==='스스_마케팅 비중')&&curDiv==='ss_total')return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
+  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(DELIVERY_KEYS.includes(m.key))return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
 
   // Toggle button visibility
   const dwrap=document.getElementById('deliveryToggleWrap');
