@@ -735,7 +735,7 @@ function renderPNL(){
           let s=0;
           for(let[ds,dm] of Object.entries(vd.D)){
             let hit=curGran==='W'?isoWeekKey(ds)===p:ds.substring(0,7)===p;
-            if(hit&&dm['Avg. dau']!=null)s+=dm['Avg. dau'];
+            if(hit){const dv=gv(dm,'Avg. dau');if(dv!=null)s+=dv;}
           }
           val=s||null;
         } else {
