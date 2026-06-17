@@ -1141,32 +1141,71 @@ function renderQCReview(){
     if(nsCur==null||nsPrev==null||!buyCur||!buyPrev)return'';
     const nsD=Math.round(nsCur-nsPrev);
     if(nsD===0)return'';
-    // 순매출 = 구매자수 × NS단가 분해 (exact: volEff + priceEff = nsD)
-    const pCur=nsCur/buyCur,pPrev=nsPrev/buyPrev;
-    const buyD=buyCur-buyPrev,pD=pCur-pPrev;
-    const volEff=Math.round(buyD*pPrev);
-    const priceEff=Math.round(pD*buyCur);
-    const absD=Math.abs(nsD);
-    const volPct=absD?Math.round(Math.abs(volEff)/absD*100):null;
-    const pricePct=absD?Math.round(Math.abs(priceEff)/absD*100):null;
     const fmtN=v=>{const a=Math.abs(v);return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');};
     const fi=v=>Math.round(v).toLocaleString('ko-KR');
-    const eff=(v,sh)=>{const s=(v>=0?'▲ +':'▼ ')+fmtN(v);return sh!=null?s+`<span class="qc-ns-share"> (${sh}%)</span>`:s;};
-    const ec=v=>v>=0?'qc-dt-pos':'qc-dt-neg';
-    const buyPctChg=buyPrev?((buyD/buyPrev)*100).toFixed(1):null;
-    const pPctChg=pPrev?((pD/pPrev)*100).toFixed(1):null;
-    // DAU/CVR 서브 분해 (데이터 있는 탭만 노출)
+    const tdEff=(v,sh)=>{
+      if(v==null)return'<td class="rat">-</td>';
+      const cls=Math.abs(v)<1000?'rat':(v>0?'qc-dt-pos':'qc-dt-neg');
+      const s=(v>=0?'▲ +':'▼ ')+fmtN(v);
+      return`<td class="${cls}">${s}${sh!=null?` <span class="qc-ns-share">(${sh}%)</span>`:''}</td>`;
+    };
+    const absD=Math.abs(nsD)||1;
+    const pct=v=>Math.round(Math.abs(v)/absD*100);
+    // NS단가 = 순매출/구매자수 (decomp 기준)
+    const pCur=nsCur/buyCur,pPrev=nsPrev/buyPrev;
     const dauCur=gv(rC,'Avg. dau'),dauPrev=gv(rP,'Avg. dau');
-    let dauHtml='';
+    let rows='',formula='구매자수 × 단가';
     if(dauCur&&dauPrev){
-      const cvrC=buyCur/dauCur*100,cvrP=buyPrev/dauPrev*100;
-      const dauD=dauCur-dauPrev,cvrD=cvrC-cvrP;
-      const dauNsEff=Math.round(dauD*cvrP/100*pPrev);
-      const cvrNsEff=Math.round(cvrD/100*dauCur*pPrev);
-      dauHtml=`<div class="qc-ns-row"><span class="qc-ns-l2">│ ├ DAU 효과</span><span class="qc-ns-meta">${fi(dauPrev)}명→${fi(dauCur)}명 <span class="qc-ns-dim">(${dauD>=0?'+':''}${fi(dauD)}명)</span></span><span class="${ec(dauNsEff)}">${eff(dauNsEff)}</span></div><div class="qc-ns-row"><span class="qc-ns-l2">│ └ CVR 효과</span><span class="qc-ns-meta">${cvrP.toFixed(1)}%→${cvrC.toFixed(1)}% <span class="qc-ns-dim">(${cvrD>=0?'+':''}${cvrD.toFixed(1)}%p)</span></span><span class="${ec(cvrNsEff)}">${eff(cvrNsEff)}</span></div>`;
+      // 3-way sequential: DAU × CVR × NS단가 → 합산 = Δ순매출 (exact)
+      const C=buyCur/dauCur,C0=buyPrev/dauPrev;
+      const dauEff=Math.round((dauCur-dauPrev)*C0*pPrev);
+      const cvrEff=Math.round(dauCur*(C-C0)*pPrev);
+      const pEff=Math.round(dauCur*C*(pCur-pPrev));
+      const cvrCur=C*100,cvrPrev=C0*100;
+      formula='DAU × CVR × 단가';
+      rows=`<tr>
+        <td class="lbl">DAU</td>
+        <td>${fi(dauPrev)}명</td><td>${fi(dauCur)}명</td>
+        ${tdEff(dauEff,pct(dauEff))}
+      </tr><tr>
+        <td class="lbl">CVR</td>
+        <td>${cvrPrev.toFixed(1)}%</td><td>${cvrCur.toFixed(1)}%</td>
+        ${tdEff(cvrEff,pct(cvrEff))}
+      </tr><tr>
+        <td class="lbl">단가</td>
+        <td>${fi(Math.round(pPrev))}원</td><td>${fi(Math.round(pCur))}원</td>
+        ${tdEff(pEff,pct(pEff))}
+      </tr>`;
+    }else{
+      // 2-way: 구매자수 × NS단가 (exact)
+      const volEff=Math.round((buyCur-buyPrev)*pPrev);
+      const pEff=Math.round((pCur-pPrev)*buyCur);
+      rows=`<tr>
+        <td class="lbl">구매자수</td>
+        <td>${fi(buyPrev)}명</td><td>${fi(buyCur)}명</td>
+        ${tdEff(volEff,pct(volEff))}
+      </tr><tr>
+        <td class="lbl">단가</td>
+        <td>${fi(Math.round(pPrev))}원</td><td>${fi(Math.round(pCur))}원</td>
+        ${tdEff(pEff,pct(pEff))}
+      </tr>`;
     }
+    const nsRow=`<tr class="r-cm">
+      <td class="lbl">= 순매출</td>
+      <td>${fmtN(nsPrev)}</td><td>${fmtN(nsCur)}</td>
+      ${tdEff(nsD)}
+    </tr>`;
     const tag=syncPeriodNote?`<span class="qc-dt-tag">${syncPeriodNote}</span>`:'';
-    return`<div class="qc-dt-wrap"><div class="qc-dt-hdr">순매출 변동 분해 ${tag}</div><div class="qc-ns-tree"><div class="qc-ns-row qc-ns-top"><span class="qc-ns-l0">순매출</span><span class="qc-ns-meta">${fmtN(nsPrev)}→${fmtN(nsCur)}</span><span class="${ec(nsD)}">${eff(nsD)}</span></div><div class="qc-ns-row"><span class="qc-ns-l1">├ 구매자수 효과</span><span class="qc-ns-meta">${fi(buyPrev)}명→${fi(buyCur)}명 <span class="qc-ns-dim">(${buyD>=0?'+':''}${fi(buyD)}명${buyPctChg?' / '+buyPctChg+'%':''})</span></span><span class="${ec(volEff)}">${eff(volEff,volPct)}</span></div>${dauHtml}<div class="qc-ns-row"><span class="qc-ns-l1">└ 단가 효과</span><span class="qc-ns-meta">${fi(Math.round(pPrev))}원→${fi(Math.round(pCur))}원 <span class="qc-ns-dim">(${pD>=0?'+':''}${fi(Math.round(pD))}원${pPctChg?' / '+pPctChg+'%':''})</span></span><span class="${ec(priceEff)}">${eff(priceEff,pricePct)}</span></div></div></div>`;
+    return`<div class="qc-dt-wrap">
+      <div class="qc-dt-hdr">순매출 변동 분해 <span class="qc-dt-tag">${formula}</span> ${tag}</div>
+      <table class="qc-dt">
+        <thead><tr>
+          <th style="text-align:left;width:28%">항목</th>
+          <th style="width:20%">전기</th><th style="width:20%">현기</th>
+          <th style="width:32%">기여액</th>
+        </tr></thead>
+        <tbody>${rows}${nsRow}</tbody>
+      </table></div>`;
   };
 
 
