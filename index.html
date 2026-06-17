@@ -126,6 +126,16 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .qc-dt tr.r-cm>td{font-weight:700;border-top:1px solid var(--border);background:rgba(79,70,229,.04)}
 .qc-dt-neg{color:#DC2626}
 .qc-dt-pos{color:#059669}
+.qc-ns-tree{margin-top:4px}
+.qc-ns-row{display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px dashed rgba(0,0,0,.05);font-size:10px}
+.qc-ns-row.qc-ns-top{border-bottom:1px solid rgba(0,0,0,.1)}
+.qc-ns-row:last-child{border-bottom:none}
+.qc-ns-l0{font-size:11px;font-weight:700;color:var(--text);min-width:108px;flex-shrink:0}
+.qc-ns-l1{padding-left:6px;min-width:108px;flex-shrink:0;font-size:10px;font-weight:600;color:var(--text)}
+.qc-ns-l2{padding-left:18px;min-width:108px;flex-shrink:0;font-size:9.5px;font-weight:500;color:var(--text-sub);font-family:monospace}
+.qc-ns-meta{flex:1;font-size:9.5px;color:var(--text-sub);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.qc-ns-dim{color:var(--border)}
+.qc-ns-share{font-weight:400;font-size:9px;color:var(--text-sub)}
 .qc-diag-group{margin-bottom:10px}
 .qc-diag-group-label{font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .qc-diag-period-tag{font-size:9px;color:var(--text-sub);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 6px;font-weight:400;letter-spacing:0;text-transform:none}
@@ -1122,6 +1132,43 @@ function renderQCReview(){
       </table></div>`;
   };
 
+  const renderNSDecomp=(vd)=>{
+    if(!vd)return'';
+    const rC=syncCurFn(vd),rP=syncPrevFn(vd);
+    if(!rC||!rP)return'';
+    const nsCur=gv(rC,'순매출'),nsPrev=gv(rP,'순매출');
+    const buyCur=gv(rC,'구매자수'),buyPrev=gv(rP,'구매자수');
+    if(nsCur==null||nsPrev==null||!buyCur||!buyPrev)return'';
+    const nsD=Math.round(nsCur-nsPrev);
+    if(nsD===0)return'';
+    // 순매출 = 구매자수 × NS단가 분해 (exact: volEff + priceEff = nsD)
+    const pCur=nsCur/buyCur,pPrev=nsPrev/buyPrev;
+    const buyD=buyCur-buyPrev,pD=pCur-pPrev;
+    const volEff=Math.round(buyD*pPrev);
+    const priceEff=Math.round(pD*buyCur);
+    const absD=Math.abs(nsD);
+    const volPct=absD?Math.round(Math.abs(volEff)/absD*100):null;
+    const pricePct=absD?Math.round(Math.abs(priceEff)/absD*100):null;
+    const fmtN=v=>{const a=Math.abs(v);return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');};
+    const fi=v=>Math.round(v).toLocaleString('ko-KR');
+    const eff=(v,sh)=>{const s=(v>=0?'▲ +':'▼ ')+fmtN(v);return sh!=null?s+`<span class="qc-ns-share"> (${sh}%)</span>`:s;};
+    const ec=v=>v>=0?'qc-dt-pos':'qc-dt-neg';
+    const buyPctChg=buyPrev?((buyD/buyPrev)*100).toFixed(1):null;
+    const pPctChg=pPrev?((pD/pPrev)*100).toFixed(1):null;
+    // DAU/CVR 서브 분해 (데이터 있는 탭만 노출)
+    const dauCur=gv(rC,'Avg. dau'),dauPrev=gv(rP,'Avg. dau');
+    let dauHtml='';
+    if(dauCur&&dauPrev){
+      const cvrC=buyCur/dauCur*100,cvrP=buyPrev/dauPrev*100;
+      const dauD=dauCur-dauPrev,cvrD=cvrC-cvrP;
+      const dauNsEff=Math.round(dauD*cvrP/100*pPrev);
+      const cvrNsEff=Math.round(cvrD/100*dauCur*pPrev);
+      dauHtml=`<div class="qc-ns-row"><span class="qc-ns-l2">│ ├ DAU 효과</span><span class="qc-ns-meta">${fi(dauPrev)}명→${fi(dauCur)}명 <span class="qc-ns-dim">(${dauD>=0?'+':''}${fi(dauD)}명)</span></span><span class="${ec(dauNsEff)}">${eff(dauNsEff)}</span></div><div class="qc-ns-row"><span class="qc-ns-l2">│ └ CVR 효과</span><span class="qc-ns-meta">${cvrP.toFixed(1)}%→${cvrC.toFixed(1)}% <span class="qc-ns-dim">(${cvrD>=0?'+':''}${cvrD.toFixed(1)}%p)</span></span><span class="${ec(cvrNsEff)}">${eff(cvrNsEff)}</span></div>`;
+    }
+    const tag=syncPeriodNote?`<span class="qc-dt-tag">${syncPeriodNote}</span>`:'';
+    return`<div class="qc-dt-wrap"><div class="qc-dt-hdr">순매출 변동 분해 ${tag}</div><div class="qc-ns-tree"><div class="qc-ns-row qc-ns-top"><span class="qc-ns-l0">순매출</span><span class="qc-ns-meta">${fmtN(nsPrev)}→${fmtN(nsCur)}</span><span class="${ec(nsD)}">${eff(nsD)}</span></div><div class="qc-ns-row"><span class="qc-ns-l1">├ 구매자수 효과</span><span class="qc-ns-meta">${fi(buyPrev)}명→${fi(buyCur)}명 <span class="qc-ns-dim">(${buyD>=0?'+':''}${fi(buyD)}명${buyPctChg?' / '+buyPctChg+'%':''})</span></span><span class="${ec(volEff)}">${eff(volEff,volPct)}</span></div>${dauHtml}<div class="qc-ns-row"><span class="qc-ns-l1">└ 단가 효과</span><span class="qc-ns-meta">${fi(Math.round(pPrev))}원→${fi(Math.round(pCur))}원 <span class="qc-ns-dim">(${pD>=0?'+':''}${fi(Math.round(pD))}원${pPctChg?' / '+pPctChg+'%':''})</span></span><span class="${ec(priceEff)}">${eff(priceEff,pricePct)}</span></div></div></div>`;
+  };
+
 
   const renderItemRows=(items)=>items.map(o=>`
     <div class="qc-row">
@@ -1168,7 +1215,7 @@ function renderQCReview(){
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(orgItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📦 조직별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(orgItems)}</div></div>`;
     mainVD=grandVD;
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }else if(lv==='platform'){
     mainVD=D.views['platform'];
     html+=buildAlert(mainVD,'플랫폼사업부');
@@ -1180,13 +1227,13 @@ function renderQCReview(){
       {label:'서비스',roiDiff:diff(D.views['pf_서비스']),cmDiff:cmDiff(D.views['pf_서비스'])},
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(subItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📊 매출구분별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(subItems)}</div></div>`;
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }else if(lv==='platform_sub'){
     mainVD=D.views[curDiv];
     const PF_LBL={'pf_상품':'상품','pf_수수료':'수수료','pf_제품':'제품','pf_서비스':'서비스'};
     html+=buildAlert(mainVD,PF_LBL[curDiv]||curDiv);
     html+=renderInterpret(mainVD);
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }else if(lv==='brand'){
     mainVD=D.views['brand_total'];
     html+=buildAlert(mainVD,'브랜드사업부');
@@ -1198,18 +1245,18 @@ function renderQCReview(){
       {label:'그외',roiDiff:diff(D.views['etc']),cmDiff:cmDiff(D.views['etc'])},
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(chItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📡 채널별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(chItems)}</div></div>`;
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }else if(lv==='brand_sub'){
     mainVD=D.views[curDiv];
     const BR_LBL={'ss_total':'스마트스토어','ssfw':'SSFW','compira':'모멘테일','coupang':'쿠팡','b2b':'B2B','etc':'그외'};
     html+=buildAlert(mainVD,BR_LBL[curDiv]||curDiv);
     html+=renderInterpret(mainVD);
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }else if(lv==='overseas'){
     mainVD=D.views['overseas'];
     html+=buildAlert(mainVD,'해외사업부');
     html+=renderInterpret(mainVD);
-    html+=renderDiagTable(mainVD);
+    html+=renderNSDecomp(mainVD);html+=renderDiagTable(mainVD);
   }
 
   content.innerHTML=html;
