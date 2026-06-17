@@ -419,17 +419,18 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div id="compiraGonguDetailSection" style="display:none"></div>
 
 <div class="qc-wrap" id="qcSection" style="display:none">
-  <div class="qc-header open">
+  <div class="qc-header" onclick="toggleQCSection()">
     <div class="qc-title-row">
       <span class="qc-icon">🔍</span>
-      <span class="qc-title">수익성 QC 리뷰</span>
+      <span class="qc-title">수익성 인사이트 리포트</span>
       <span class="qc-period" id="qcPeriodLabel"></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span id="qcSyncNote" style="display:none;font-size:11px;color:#64748B;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:12px;padding:2px 9px;white-space:nowrap"></span>
+      <button class="qc-toggle-btn" id="qcToggleBtn">펼치기 ▼</button>
     </div>
   </div>
-  <div id="qcBody">
+  <div id="qcBody" style="display:none">
     <div class="qc-compare-bar" id="qcCompareBar"></div>
     <div class="qc-layout">
       <div class="qc-left" id="qcContent"></div>
@@ -882,6 +883,7 @@ function renderPNL(){
 }
 
 /* ── QC 리뷰 ── */
+let showQCSection=false;
 let qcCompareMode='preset'; // 'preset' | 'custom'
 let qcPresetYoy=false; // false=기본(전월/전주/어제), true=전년동기
 let qcCustomPrevP={M:'',W:'',D:''};
@@ -908,6 +910,16 @@ function qcRenderCompareBar(g){
     html+=`<input type="${inputType}" class="qc-cmp-date" value="${val}" onchange="qcSetCustomPrev('${g}',this.value)" onclick="event.stopPropagation()">`;
   }
   bar.innerHTML=html;
+}
+
+function toggleQCSection(){
+  showQCSection=!showQCSection;
+  const body=document.getElementById('qcBody');
+  const btn=document.getElementById('qcToggleBtn');
+  const hdr=document.querySelector('.qc-header');
+  if(body){body.style.display=showQCSection?'block':'none';}
+  if(btn){btn.textContent=showQCSection?'접기 ▲':'펼치기 ▼';}
+  if(hdr){hdr.classList.toggle('open',showQCSection);}
 }
 
 function qcLevel(){
