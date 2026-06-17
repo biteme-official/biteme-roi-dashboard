@@ -113,6 +113,19 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .qc-section-title{font-size:11px;font-weight:700;color:var(--text-sub);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px}
 .qc-chart-label{font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:6px;letter-spacing:.3px}
 .qc-diag-body{padding:0 2px}
+.qc-dt-wrap{margin-top:6px;overflow-x:auto}
+.qc-dt-hdr{font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.qc-dt-tag{font-size:9px;font-weight:400;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1px 6px;color:var(--text-sub)}
+.qc-dt{width:100%;border-collapse:collapse;font-size:10px}
+.qc-dt th{font-size:8.5px;font-weight:600;color:var(--text-sub);padding:2px 3px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.qc-dt th:first-child{text-align:left}
+.qc-dt td{padding:3px 3px;border-bottom:1px solid rgba(0,0,0,.04);white-space:nowrap;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.qc-dt td.lbl{text-align:left;color:var(--text);font-size:9.5px}
+.qc-dt td.rat{color:var(--text-sub);font-size:9px}
+.qc-dt tr.r-ns>td{font-weight:600;border-bottom:1px solid rgba(0,0,0,.12)}
+.qc-dt tr.r-cm>td{font-weight:700;border-top:1px solid var(--border);background:rgba(79,70,229,.04)}
+.qc-dt-neg{color:#DC2626}
+.qc-dt-pos{color:#059669}
 .qc-diag-group{margin-bottom:10px}
 .qc-diag-group-label{font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
 .qc-diag-period-tag{font-size:9px;color:var(--text-sub);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 6px;font-weight:400;letter-spacing:0;text-transform:none}
@@ -402,8 +415,8 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <div class="qc-layout">
       <div class="qc-left" id="qcContent"></div>
       <div class="qc-right" id="qcCharts">
-        <div class="qc-section-title">공헌이익 변동 분석</div>
-        <div class="qc-chart-label" style="font-size:10px;color:var(--text-sub);margin-bottom:8px">거래량·비용율 각 요인의 공헌이익 기여액 · 막대 끝 = ROI 기여도</div>
+        <div class="qc-section-title">공헌이익 변동 브리지</div>
+        <div class="qc-chart-label" style="font-size:10px;color:var(--text-sub);margin-bottom:8px">순매출 · 각 변동비의 절대금액 변동이 공헌이익에 미친 기여액 · 합계 = 실제 공헌이익 변동</div>
         <div style="height:310px"><canvas id="qcDivergingChart"></canvas></div>
       </div>
     </div>
@@ -818,7 +831,7 @@ function renderPNL(){
           let s=0;
           for(let[ds,dm] of Object.entries(vd.D)){
             let hit=curGran==='W'?isoWeekKey(ds)===p:ds.substring(0,7)===p;
-            if(hit&&dm['Avg. dau']!=null)s+=dm['Avg. dau'];
+            if(hit){const dv=gv(dm,'Avg. dau');if(dv!=null)s+=dv;}
           }
           val=s||null;
         } else {
@@ -1032,38 +1045,83 @@ function renderQCReview(){
   };
 
   const fmtA=(v)=>{const abs=Math.abs(v),s=abs>=1e8?(v/1e8).toFixed(1)+'억':abs>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');return(v>=0?'▲ +':'▼ ')+s;};
-  const renderDiag=(vd)=>{
+  const renderDiagTable=(vd)=>{
     if(!vd)return'';
-    const rCur=syncCurFn(vd),rPrev=syncPrevFn(vd);
-    if(!rCur||!rPrev)return'';
-    const getRt=(row,k)=>row[k]!=null?row[k]:rv(row,k);
-    const amtRows=[{key:'거래액',label:'거래액'},{key:'순매출',label:'순매출'}].map(f=>{
-      const c=gv(rCur,f.key),p=gv(rPrev,f.key);
-      if(c==null||p==null)return null;
-      const d=c-p,pct=p!==0?d/p*100:null;
-      const cls=d>0?'pos':d<0?'neg':'flat';
-      return`<div class="qc-diag-row"><span class="qc-diag-label">${f.label}</span><span class="qc-diag-val ${cls}">${fmtA(d)}${pct!=null?` (${pct>=0?'+':''}${pct.toFixed(1)}%)`:''}</span></div>`;
-    }).filter(Boolean);
-    const RKEYS=[{k:'매출원가율',l:'원가율'},{k:'마케팅성 비중',l:'마케팅비율'},{k:'운반비성 비중',l:'운반비율'},{k:'PG성 비중',l:'PG비율'}];
-    const rateItems=RKEYS.map(f=>{
-      const c=getRt(rCur,f.k),p=getRt(rPrev,f.k);
-      if(c==null||p==null)return null;
-      const d=c-p,flat=Math.abs(d)<0.05;
-      const cls=flat?'flat':d>0?'neg':'pos';
-      const valHtml=flat?'-':`${d>=0?'▲ +':'▼ '}${d.toFixed(1)}%p`;
-      return{label:f.l,d,flat,html:`<div class="qc-diag-row"><span class="qc-diag-label">${f.l}</span><span class="qc-diag-val ${cls}">${valHtml}</span></div>`};
-    }).filter(Boolean);
-    const cNS=gv(rCur,'순매출'),pNS=gv(rPrev,'순매출');
-    const summaryFacts=[];
-    if(cNS!=null&&pNS!=null&&pNS!==0){const pct=(cNS-pNS)/Math.abs(pNS)*100;summaryFacts.push(`<span class="qc-attr-chip ${pct>=0?'pos':'neg'}">순매출 ${pct>=0?'+':''}${pct.toFixed(1)}% ${pct>=0?'증가':'감소'}</span>`);}
-    rateItems.forEach(f=>{if(f.flat)return;summaryFacts.push(`<span class="qc-attr-chip ${f.d>0?'neg':'pos'}">${f.label} ${f.d>=0?'+':''}${f.d.toFixed(1)}%p ${f.d>=0?'상승':'하락'}</span>`);});
-    let h='';
-    if(amtRows.length)h+=`<div class="qc-diag-group"><div class="qc-diag-group-label">매출 변동${syncPeriodNote?`<span class="qc-diag-period-tag">${syncPeriodNote}</span>`:''}</div>${amtRows.join('')}</div>`;
-    if(rateItems.length)h+=`<div class="qc-diag-group"><div class="qc-diag-group-label">비용율 변동</div>${rateItems.map(f=>f.html).join('')}</div>`;
-    if(summaryFacts.length)h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 2px 2px">${summaryFacts.join('')}</div>`;
-    if(!h)return'';
-    return`<div class="qc-section-title">원인 진단</div><div class="qc-diag-body">${h}</div>`;
+    const rC=syncCurFn(vd),rP=syncPrevFn(vd);
+    if(!rC&&!rP)return'';
+    const getR=(row,k)=>row&&row[k]!=null?row[k]:rv(row,k);
+    const absOf=(row,ak,rk)=>{if(!row)return null;const d=gv(row,ak);if(d!=null)return d;const ns=gv(row,'순매출');if(!ns)return null;const rvv=rv(row,rk);if(rvv!=null)return Math.round(rvv/100*ns);const rt=row[rk];return(rt!=null&&rt>=0&&rt<=100)?Math.round(rt/100*ns):null;};
+    const fmtN=v=>{if(v==null)return'-';const a=Math.abs(v);if(a>=1e8)return(v/1e8).toFixed(1)+'억';if(a>=1e4)return Math.round(v/1e4).toLocaleString('ko-KR')+'만';return Math.round(v).toLocaleString('ko-KR');};
+    const tdDiff=(cur,prev,costDir)=>{
+      if(cur==null||prev==null)return'<td class="rat">-</td>';
+      const d=Math.round(cur-prev);
+      const bad=costDir?d>0:d<0;
+      const cls=Math.abs(d)<100?'rat':(bad?'qc-dt-neg':'qc-dt-pos');
+      const a=Math.abs(d);const s=a>=1e8?(d/1e8).toFixed(1)+'억':a>=1e4?Math.round(d/1e4).toLocaleString('ko-KR')+'만':Math.round(d).toLocaleString('ko-KR');
+      return`<td class="${cls}">${d>=0?'▲ +':'▼ '}${s}</td>`;
+    };
+    const tdRdiff=(cur,prev,costDir)=>{
+      if(cur==null||prev==null)return'<td class="rat">-</td>';
+      const d=parseFloat((cur-prev).toFixed(2));
+      const bad=costDir?d>0:d<0;
+      const a=Math.abs(d);
+      const badge=a>=3?(bad?'🔴':' 🟢'):a>=1?(bad?'🟡':' 🟢'):'';
+      const cls=a<0.05?'rat':(bad?'qc-dt-neg':'qc-dt-pos');
+      return`<td class="${cls}">${badge} ${d>=0?'+':''}${d.toFixed(1)}%p</td>`;
+    };
+    const nsCur=gv(rC,'순매출'),nsPrev=gv(rP,'순매출');
+    const cmCur=gv(rC,'공헌이익'),cmPrev=gv(rP,'공헌이익');
+    const roiCur=nsCur&&cmCur!=null?cmCur/nsCur*100:getR(rC,'ROI');
+    const roiPrev=nsPrev&&cmPrev!=null?cmPrev/nsPrev*100:getR(rP,'ROI');
+    const COST=[
+      {label:'매출원가',ak:'매출원가',rk:'매출원가율'},
+      {label:'마케팅성 변동비',ak:'마케팅성 변동비',rk:'마케팅성 비중'},
+      {label:'운반비성 변동비',ak:'운반비성 변동비',rk:'운반비성 비중'},
+      {label:'PG수수료',ak:'PG수수료성 변동비',rk:'PG성 비중'},
+    ];
+    const nsRow=`<tr class="r-ns">
+      <td class="lbl">순매출</td>
+      <td>${fmtN(nsPrev)}</td><td>${fmtN(nsCur)}</td>
+      ${tdDiff(nsCur,nsPrev,false)}
+      <td class="rat">-</td><td class="rat">-</td><td class="rat">-</td>
+    </tr>`;
+    const costRows=COST.map(({label,ak,rk})=>{
+      const aC=absOf(rC,ak,rk),aP=absOf(rP,ak,rk);
+      if(aC==null&&aP==null)return'';
+      // 비율은 절대금액 ÷ 순매출로 역산 (raw 집계 행의 비율 필드 이상값 회피)
+      const rC2=aC!=null&&nsCur&&nsCur!==0?aC/nsCur*100:null;
+      const rP2=aP!=null&&nsPrev&&nsPrev!==0?aP/nsPrev*100:null;
+      return`<tr>
+        <td class="lbl"><span style="font-size:8px;color:var(--text-sub)">(-) </span>${label}</td>
+        <td>${fmtN(aP)}</td><td>${fmtN(aC)}</td>
+        ${tdDiff(aC,aP,true)}
+        <td class="rat">${rP2!=null?rP2.toFixed(1)+'%':'-'}</td>
+        <td class="rat">${rC2!=null?rC2.toFixed(1)+'%':'-'}</td>
+        ${tdRdiff(rC2,rP2,true)}
+      </tr>`;
+    }).join('');
+    const cmRow=`<tr class="r-cm">
+      <td class="lbl">= 공헌이익</td>
+      <td>${fmtN(cmPrev)}</td><td>${fmtN(cmCur)}</td>
+      ${tdDiff(cmCur,cmPrev,false)}
+      <td class="rat">${roiPrev!=null?roiPrev.toFixed(1)+'%':'-'}</td>
+      <td class="rat">${roiCur!=null?roiCur.toFixed(1)+'%':'-'}</td>
+      ${tdRdiff(roiCur,roiPrev,false)}
+    </tr>`;
+    const tag=syncPeriodNote?`<span class="qc-dt-tag">${syncPeriodNote}</span>`:'';
+    return`<div class="qc-dt-wrap"><div class="qc-dt-hdr">변동비 진단 ${tag}</div>
+      <table class="qc-dt">
+        <thead><tr>
+          <th style="text-align:left;width:34%">항목</th>
+          <th style="width:12%">전기</th><th style="width:12%">현기</th>
+          <th style="width:15%">변동액</th>
+          <th style="width:8%">전%</th><th style="width:8%">현%</th>
+          <th style="width:15%">%p 변동</th>
+        </tr></thead>
+        <tbody>${nsRow}${costRows}${cmRow}</tbody>
+      </table></div>`;
   };
+
 
   const renderItemRows=(items)=>items.map(o=>`
     <div class="qc-row">
@@ -1110,7 +1168,7 @@ function renderQCReview(){
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(orgItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📦 조직별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(orgItems)}</div></div>`;
     mainVD=grandVD;
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }else if(lv==='platform'){
     mainVD=D.views['platform'];
     html+=buildAlert(mainVD,'플랫폼사업부');
@@ -1122,13 +1180,13 @@ function renderQCReview(){
       {label:'서비스',roiDiff:diff(D.views['pf_서비스']),cmDiff:cmDiff(D.views['pf_서비스'])},
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(subItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📊 매출구분별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(subItems)}</div></div>`;
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }else if(lv==='platform_sub'){
     mainVD=D.views[curDiv];
     const PF_LBL={'pf_상품':'상품','pf_수수료':'수수료','pf_제품':'제품','pf_서비스':'서비스'};
     html+=buildAlert(mainVD,PF_LBL[curDiv]||curDiv);
     html+=renderInterpret(mainVD);
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }else if(lv==='brand'){
     mainVD=D.views['brand_total'];
     html+=buildAlert(mainVD,'브랜드사업부');
@@ -1140,18 +1198,18 @@ function renderQCReview(){
       {label:'그외',roiDiff:diff(D.views['etc']),cmDiff:cmDiff(D.views['etc'])},
     ].filter(o=>o.roiDiff!=null||o.cmDiff!=null);
     if(chItems.length)html+=`<div class="qc-card"><div class="qc-card-title">📡 채널별 공헌이익·ROI 변동</div><div class="qc-card-rows">${renderItemRows(chItems)}</div></div>`;
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }else if(lv==='brand_sub'){
     mainVD=D.views[curDiv];
     const BR_LBL={'ss_total':'스마트스토어','ssfw':'SSFW','compira':'모멘테일','coupang':'쿠팡','b2b':'B2B','etc':'그외'};
     html+=buildAlert(mainVD,BR_LBL[curDiv]||curDiv);
     html+=renderInterpret(mainVD);
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }else if(lv==='overseas'){
     mainVD=D.views['overseas'];
     html+=buildAlert(mainVD,'해외사업부');
     html+=renderInterpret(mainVD);
-    html+=renderDiag(mainVD);
+    html+=renderDiagTable(mainVD);
   }
 
   content.innerHTML=html;
@@ -1173,52 +1231,39 @@ function renderQCDivergingChart(){
   dc('qcDiv');
   const canvas=document.getElementById('qcDivergingChart');
   if(!canvas||!_qcRCur||!_qcRPrev)return;
-  const rCur=_qcRCur,rPrev=_qcRPrev;
-  const nsCur=gv(rCur,'순매출')||0,nsPrev=gv(rPrev,'순매출')||0;
-  const cmCur=gv(rCur,'공헌이익'),cmPrev=gv(rPrev,'공헌이익');
+  const rC=_qcRCur,rP=_qcRPrev;
+  const nsCur=gv(rC,'순매출'),nsPrev=gv(rP,'순매출');
+  const cmCur=gv(rC,'공헌이익'),cmPrev=gv(rP,'공헌이익');
   if(cmCur==null||cmPrev==null)return;
 
-  const getRoi=r=>{if(!r)return null;const cm=gv(r,'공헌이익'),ns=gv(r,'순매출');return(cm!=null&&ns&&ns!==0)?cm/ns*100:rv(r,'ROI');};
-  const roiCur=getRoi(rCur),roiPrev=getRoi(rPrev);
-  const totalROIDiff=(roiCur!=null&&roiPrev!=null)?parseFloat((roiCur-roiPrev).toFixed(2)):null;
+  const getR=(row,k)=>row&&row[k]!=null?row[k]:rv(row,k);
+  const absOf=(row,ak,rk)=>{if(!row)return null;const d=gv(row,ak);if(d!=null)return d;const ns=gv(row,'순매출');if(!ns)return null;const rvv=rv(row,rk);if(rvv!=null)return Math.round(rvv/100*ns);const rt=row[rk];return(rt!=null&&rt>=0&&rt<=100)?Math.round(rt/100*ns):null;};
+
   const totalCM=Math.round(cmCur-cmPrev);
+  const nsDiff=nsCur!=null&&nsPrev!=null?Math.round(nsCur-nsPrev):null;
 
-  const getR=(row,k)=>row[k]!=null?row[k]:rv(row,k);
-
-  // 거래량(순매출 규모) 효과: 이전 CM율 기준으로 순매출 증감이 기여한 CM
-  const prevCMRate=nsPrev!==0?cmPrev/nsPrev:0;
-  const volCM=Math.round((nsCur-nsPrev)*prevCMRate);
-
-  // 비용율 요인별 CM 기여 + ROI %p 기여
-  const RATES=[
-    {k:'매출원가율',l:'원가율 효과'},
-    {k:'마케팅성 비중',l:'마케팅비율 효과'},
-    {k:'운반비성 비중',l:'운반비율 효과'},
-    {k:'PG성 비중',l:'PG비율 효과'},
+  // 절대금액 브리지: 각 변동비 항목의 절대 변화 → CM 기여액 (-Δ비용 = CM 기여)
+  const FACTORS=[
+    {label:'매출원가 변동',  ak:'매출원가',         rk:'매출원가율'},
+    {label:'마케팅비 변동',  ak:'마케팅성 변동비',   rk:'마케팅성 비중'},
+    {label:'운반비 변동',    ak:'운반비성 변동비',   rk:'운반비성 비중'},
+    {label:'PG비 변동',     ak:'PG수수료성 변동비', rk:'PG성 비중'},
   ];
-  const factors=RATES.map(({k,l})=>{
-    const c=getR(rCur,k),p=getR(rPrev,k);
-    if(c==null||p==null)return null;
-    const delta=c-p;
-    return{label:l,cm:Math.round(-delta/100*nsCur),roi:parseFloat((-delta).toFixed(2))};
+  const factors=FACTORS.map(({label,ak,rk})=>{
+    const aC=absOf(rC,ak,rk),aP=absOf(rP,ak,rk);
+    if(aC==null||aP==null)return null;
+    const diff=Math.round(aC-aP);   // 비용 절대 변동
+    return{label,costDiff:diff,cm:-diff}; // CM 기여 = -비용변동
   }).filter(Boolean);
 
-  // items 순서: 합계 → 거래량 효과 → 비용율 요인들
   const items=[
-    {label:'공헌이익 전체 변동',cm:totalCM,roi:totalROIDiff,isTotal:true},
-    {label:'순매출 규모 효과',cm:volCM,roi:null,isVol:true},
+    ...(nsDiff!=null?[{label:'순매출 변동',cm:nsDiff,costDiff:null,isNS:true}]:[]),
     ...factors,
+    {label:'공헌이익 변동',cm:totalCM,costDiff:null,isTotal:true},
   ];
-
-  const fmtCM=v=>{
-    if(v==null)return'';
-    const abs=Math.abs(v);
-    const s=abs>=1e8?(v/1e8).toFixed(1)+'억':abs>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');
-    return(v>=0?'+':'')+s+'원';
-  };
-  const fmtROI=v=>v!=null?`ROI ${v>=0?'+':''}${v.toFixed(1)}%p`:'';
-
   const cmData=items.map(i=>i.cm);
+
+  const fmtS=v=>{if(v==null)return'';const a=Math.abs(v);const s=a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4)+'만':Math.round(v).toLocaleString('ko-KR');return(v>=0?'▲ +':'▼ ')+s;};
 
   charts.qcDiv=new Chart(canvas.getContext('2d'),{
     type:'bar',
@@ -1229,82 +1274,62 @@ function renderQCDivergingChart(){
         backgroundColor:ctx=>{
           const item=items[ctx.dataIndex];if(!item)return'#94A3B8';
           if(item.isTotal)return'rgba(99,102,241,0.85)';
-          if(item.isVol)return item.cm>=0?'rgba(59,130,246,0.75)':'rgba(239,68,68,0.75)';
+          if(item.isNS)return item.cm>=0?'rgba(59,130,246,0.75)':'rgba(239,68,68,0.75)';
           return item.cm>=0?'rgba(16,185,129,0.82)':'rgba(239,68,68,0.82)';
         },
         borderColor:ctx=>items[ctx.dataIndex]?.isTotal?'#4F46E5':'transparent',
         borderWidth:ctx=>items[ctx.dataIndex]?.isTotal?2:0,
-        borderRadius:4,
-        barPercentage:0.6,
-        categoryPercentage:0.85,
+        borderRadius:4,barPercentage:0.6,categoryPercentage:0.85,
       }]
     },
     options:{
-      indexAxis:'y',
-      responsive:true,maintainAspectRatio:false,
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{label:ctx=>{
           const item=items[ctx.dataIndex];
-          let txt=item.cm!=null?`공헌이익 ${fmtCM(item.cm)}원`:'';
-          if(!item.isTotal&&totalCM!==0&&item.cm!=null){
-            const pct=Math.round(item.cm/totalCM*100);
-            txt+=`  ·  전체 변동의 ${pct>0?'+':''}${pct}%`;
-          }
-          if(item.isVol)txt+='  (거래량 기여 — ROI 중립)';
-          return txt;
+          if(item.isTotal)return`공헌이익 변동 ${fmtS(item.cm)}원`;
+          if(item.isNS)return`순매출 ${fmtS(item.cm)}원  →  CM 기여 ${fmtS(item.cm)}원`;
+          const pct=totalCM!==0?Math.round(item.cm/totalCM*100):0;
+          return`${item.label} ${fmtS(item.costDiff)}원  →  CM 기여 ${fmtS(item.cm)}원  (전체 변동의 ${pct>0?'+':''}${pct}%)`;
         }}}
       },
       scales:{
         x:{
-          title:{display:true,text:'공헌이익 기여액',font:{size:9}},
-          ticks:{callback:v=>{const abs=Math.abs(v);if(abs===0)return'0';if(abs>=1e8)return(v/1e8).toFixed(0)+'억';if(abs>=1e4)return Math.round(v/1e4)+'만';return v.toLocaleString('ko-KR');},font:{size:9},maxTicksLimit:7},
-          grid:{color:ctx=>ctx.tick.value===0?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.05)',lineWidth:ctx=>ctx.tick.value===0?1.5:1},
+          title:{display:true,text:'공헌이익 기여액 (원)',font:{size:9}},
+          ticks:{callback:v=>{const a=Math.abs(v);if(!a)return'0';if(a>=1e8)return(v/1e8).toFixed(0)+'억';if(a>=1e4)return Math.round(v/1e4)+'만';return v.toLocaleString('ko-KR');},font:{size:9},maxTicksLimit:7},
+          grid:{color:ctx=>ctx.tick.value===0?'rgba(0,0,0,.2)':'rgba(0,0,0,.05)',lineWidth:ctx=>ctx.tick.value===0?1.5:1},
         },
         y:{ticks:{
           font:ctx=>({size:9,weight:items[ctx.index]?.isTotal?'700':'400'}),
-          color:ctx=>items[ctx.index]?.isTotal?'#4F46E5':items[ctx.index]?.isVol?'#2563EB':'#475569',
+          color:ctx=>items[ctx.index]?.isTotal?'#4F46E5':items[ctx.index]?.isNS?'#1D4ED8':'#475569',
         }}
       }
     },
-    plugins:[
-      {id:'qc-sep',afterDraw(chart){
-        const{ctx,chartArea:{left,right},scales:{y}}=chart;
-        if(items.length<2)return;
-        const y0=y.getPixelForValue(0),y1=y.getPixelForValue(1);
-        const sy=(y0+y1)/2;
-        ctx.save();ctx.strokeStyle='rgba(0,0,0,0.13)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
-        ctx.beginPath();ctx.moveTo(left,sy);ctx.lineTo(right,sy);ctx.stroke();ctx.restore();
-      }},
-      {id:'qc-ann',afterDatasetsDraw(chart){
-        const{ctx}=chart;
-        const fmtS=v=>{const a=Math.abs(v);const s=a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4)+'만':Math.round(v).toLocaleString('ko-KR');return(v>=0?'▲ +':'▼ ')+s;};
-        ctx.save();ctx.textBaseline='middle';
-        cmData.forEach((v,i)=>{
-          if(v==null)return;
-          const item=items[i];
-          const bar=chart.getDatasetMeta(0).data[i];
-          const isRight=v>=0;
-          ctx.textAlign=isRight?'left':'right';
-          const lx=isRight?bar.x+5:bar.x-5;
-          if(item.isTotal){
-            ctx.font='bold 9px Pretendard,sans-serif';
-            ctx.fillStyle='#4F46E5';
-            ctx.fillText(fmtS(v),lx,bar.y);
-          }else if(item.isVol){
-            ctx.font='9px Pretendard,sans-serif';
-            ctx.fillStyle='#64748B';
-            ctx.fillText(fmtS(v)+' (거래량)',lx,bar.y);
-          }else{
-            const pct=totalCM!==0?Math.round(v/totalCM*100):0;
-            ctx.font='9px Pretendard,sans-serif';
-            ctx.fillStyle=v>=0?'#059669':'#DC2626';
-            ctx.fillText(fmtS(v)+' ('+(pct>0?'+':'')+pct+'%)',lx,bar.y);
-          }
-        });
-        ctx.restore();
-      }}
-    ]
+    plugins:[{id:'qc-ann',afterDatasetsDraw(chart){
+      const{ctx}=chart;
+      ctx.save();ctx.textBaseline='middle';
+      cmData.forEach((v,i)=>{
+        if(v==null)return;
+        const item=items[i];
+        const bar=chart.getDatasetMeta(0).data[i];
+        const right=v>=0;
+        ctx.textAlign=right?'left':'right';
+        const lx=right?bar.x+5:bar.x-5;
+        const pct=totalCM!==0?Math.round(v/totalCM*100):0;
+        if(item.isTotal){
+          ctx.font='bold 9px Pretendard,sans-serif';ctx.fillStyle='#4F46E5';
+          ctx.fillText(fmtS(v),lx,bar.y);
+        }else if(item.isNS){
+          ctx.font='9px Pretendard,sans-serif';ctx.fillStyle=v>=0?'#1D4ED8':'#DC2626';
+          ctx.fillText(fmtS(v),lx,bar.y);
+        }else{
+          ctx.font='9px Pretendard,sans-serif';ctx.fillStyle=v>=0?'#059669':'#DC2626';
+          ctx.fillText(fmtS(v)+' ('+(pct>0?'+':'')+pct+'%)',lx,bar.y);
+        }
+      });
+      ctx.restore();
+    }}]
   });
 }
 
