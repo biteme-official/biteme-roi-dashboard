@@ -397,11 +397,9 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <div class="qc-layout">
       <div class="qc-left" id="qcContent"></div>
       <div class="qc-right" id="qcCharts">
-        <div class="qc-section-title">공헌이익 변동 분해</div>
-        <div class="qc-chart-label" id="qcWfLabel"></div>
-        <div style="height:200px;margin-bottom:16px"><canvas id="qcWaterfallChart"></canvas></div>
-        <div class="qc-section-title">비용율 현재 vs 이전</div>
-        <div style="height:200px"><canvas id="qcCompareChart"></canvas></div>
+        <div class="qc-section-title">공헌이익 변동 분석</div>
+        <div class="qc-chart-label" style="font-size:10px;color:var(--text-sub);margin-bottom:8px">거래량·비용율 각 요인의 공헌이익 기여액 · 막대 끝 = ROI 기여도</div>
+        <div style="height:310px"><canvas id="qcDivergingChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -1124,129 +1122,138 @@ function renderQCReview(){
 }
 
 function renderQCCharts(){
-  renderQCWaterfallChart();
-  renderQCCompareChart();
+  dc('qcWf');dc('qcCmp');
+  renderQCDivergingChart();
 }
 
-function renderQCWaterfallChart(){
-  dc('qcWf');
-  const canvas=document.getElementById('qcWaterfallChart');
+function renderQCDivergingChart(){
+  dc('qcDiv');
+  const canvas=document.getElementById('qcDivergingChart');
   if(!canvas||!_qcRCur||!_qcRPrev)return;
   const rCur=_qcRCur,rPrev=_qcRPrev;
   const nsCur=gv(rCur,'순매출')||0,nsPrev=gv(rPrev,'순매출')||0;
   const cmCur=gv(rCur,'공헌이익'),cmPrev=gv(rPrev,'공헌이익');
   if(cmCur==null||cmPrev==null)return;
 
-  const prevRoi=nsPrev!==0?cmPrev/nsPrev:0;
-  const nsEff=Math.round((nsCur-nsPrev)*prevRoi);
-  const RATE_KEYS=[
-    {k:'매출원가율',l:'원가율'},
-    {k:'마케팅성 비중',l:'마케팅비'},
-    {k:'운반비성 비중',l:'운반비'},
-    {k:'PG성 비중',l:'PG비'},
+  const getRoi=r=>{if(!r)return null;const cm=gv(r,'공헌이익'),ns=gv(r,'순매출');return(cm!=null&&ns&&ns!==0)?cm/ns*100:rv(r,'ROI');};
+  const roiCur=getRoi(rCur),roiPrev=getRoi(rPrev);
+  const totalROIDiff=(roiCur!=null&&roiPrev!=null)?parseFloat((roiCur-roiPrev).toFixed(2)):null;
+  const totalCM=Math.round(cmCur-cmPrev);
+
+  const getR=(row,k)=>row[k]!=null?row[k]:rv(row,k);
+
+  // 거래량(순매출 규모) 효과: 이전 CM율 기준으로 순매출 증감이 기여한 CM
+  const prevCMRate=nsPrev!==0?cmPrev/nsPrev:0;
+  const volCM=Math.round((nsCur-nsPrev)*prevCMRate);
+
+  // 비용율 요인별 CM 기여 + ROI %p 기여
+  const RATES=[
+    {k:'매출원가율',l:'원가율 효과'},
+    {k:'마케팅성 비중',l:'마케팅비율 효과'},
+    {k:'운반비성 비중',l:'운반비율 효과'},
+    {k:'PG성 비중',l:'PG비율 효과'},
   ];
-  const effects=[{label:'순매출',val:nsEff}];
-  RATE_KEYS.forEach(({k,l})=>{
-    const c=rCur[k]!=null?rCur[k]:rv(rCur,k);
-    const p=rPrev[k]!=null?rPrev[k]:rv(rPrev,k);
-    if(c!=null&&p!=null)effects.push({label:l,val:Math.round(-(c-p)/100*nsCur)});
-  });
+  const factors=RATES.map(({k,l})=>{
+    const c=getR(rCur,k),p=getR(rPrev,k);
+    if(c==null||p==null)return null;
+    const delta=c-p;
+    return{label:l,cm:Math.round(-delta/100*nsCur),roi:parseFloat((-delta).toFixed(2))};
+  }).filter(Boolean);
 
-  const labels=['이전 CM',...effects.map(e=>e.label),'현재 CM'];
-  let running=cmPrev;
-  const barData=[
-    cmPrev>=0?[0,cmPrev]:[cmPrev,0],
-    ...effects.map(e=>{const s=running,end=running+e.val;running=end;return e.val>=0?[s,end]:[end,s];}),
-    cmCur>=0?[0,cmCur]:[cmCur,0],
+  // items 순서: 합계 → 거래량 효과 → 비용율 요인들
+  const items=[
+    {label:'공헌이익 전체 변동',cm:totalCM,roi:totalROIDiff,isTotal:true},
+    {label:'순매출 규모 효과',cm:volCM,roi:null,isVol:true},
+    ...factors,
   ];
-  const bgColors=['#6366F1',...effects.map(e=>e.val>=0?'#10B981':'#EF4444'),'#6366F1'];
 
-  const fmtV=v=>{const abs=Math.abs(v);if(abs>=1e8)return(v/1e8).toFixed(1)+'억';if(abs>=1e4)return Math.round(v/1e4).toLocaleString('ko-KR')+'만';return Math.round(v).toLocaleString('ko-KR');};
-  const wfLbl=document.getElementById('qcWfLabel');
-  if(wfLbl)wfLbl.textContent=_qcSyncNote?`(${_qcSyncNote} 기준)`:'';
+  const fmtCM=v=>{
+    if(v==null)return'';
+    const abs=Math.abs(v);
+    const s=abs>=1e8?(v/1e8).toFixed(1)+'억':abs>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');
+    return(v>=0?'+':'')+s+'원';
+  };
+  const fmtROI=v=>v!=null?`ROI ${v>=0?'+':''}${v.toFixed(1)}%p`:'';
 
-  charts.qcWf=new Chart(canvas.getContext('2d'),{
+  const cmData=items.map(i=>i.cm);
+
+  charts.qcDiv=new Chart(canvas.getContext('2d'),{
     type:'bar',
-    data:{labels,datasets:[{data:barData,backgroundColor:bgColors,borderRadius:3,barPercentage:0.6}]},
+    data:{
+      labels:items.map(i=>i.label),
+      datasets:[{
+        data:cmData,
+        backgroundColor:ctx=>{
+          const item=items[ctx.dataIndex];if(!item)return'#94A3B8';
+          if(item.isTotal)return'rgba(99,102,241,0.85)';
+          if(item.isVol)return item.cm>=0?'rgba(59,130,246,0.75)':'rgba(239,68,68,0.75)';
+          return item.cm>=0?'rgba(16,185,129,0.82)':'rgba(239,68,68,0.82)';
+        },
+        borderColor:ctx=>items[ctx.dataIndex]?.isTotal?'#4F46E5':'transparent',
+        borderWidth:ctx=>items[ctx.dataIndex]?.isTotal?2:0,
+        borderRadius:4,
+        barPercentage:0.6,
+        categoryPercentage:0.85,
+      }]
+    },
     options:{
+      indexAxis:'y',
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{label:ctx=>{
-          const i=ctx.dataIndex;
-          if(i===0)return`이전: ${fmtV(cmPrev)}원`;
-          if(i===labels.length-1)return`현재: ${fmtV(cmCur)}원`;
-          const e=effects[i-1];return`${e.val>=0?'+':''}${fmtV(e.val)}원`;
+          const item=items[ctx.dataIndex];
+          const cm=item.cm!=null?`CM ${fmtCM(item.cm)}`:'';
+          const roi=item.roi!=null?`  ·  ${fmtROI(item.roi)}`:'';
+          const vol=item.isVol?' (거래량 기여, ROI 영향 없음)':'';
+          return cm+roi+vol;
         }}}
       },
       scales:{
-        x:{ticks:{font:{size:9}}},
-        y:{ticks:{callback:v=>fmtV(v),font:{size:9}},grid:{color:'rgba(0,0,0,0.04)'}}
+        x:{
+          title:{display:true,text:'공헌이익 기여액',font:{size:9}},
+          ticks:{callback:v=>{const abs=Math.abs(v);if(abs===0)return'0';if(abs>=1e8)return(v/1e8).toFixed(0)+'억';if(abs>=1e4)return Math.round(v/1e4)+'만';return v.toLocaleString('ko-KR');},font:{size:9},maxTicksLimit:7},
+          grid:{color:ctx=>ctx.tick.value===0?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.05)',lineWidth:ctx=>ctx.tick.value===0?1.5:1},
+        },
+        y:{ticks:{
+          font:ctx=>({size:9,weight:items[ctx.index]?.isTotal?'700':'400'}),
+          color:ctx=>items[ctx.index]?.isTotal?'#4F46E5':items[ctx.index]?.isVol?'#2563EB':'#475569',
+        }}
       }
     },
-    plugins:[{id:'qcwf-lbl',afterDatasetsDraw(chart){
-      const{ctx:c,data:d}=chart;c.save();
-      c.font='bold 9px Pretendard,sans-serif';c.textAlign='center';
-      d.datasets[0].data.forEach((v,i)=>{
-        const bar=chart.getDatasetMeta(0).data[i];
-        const size=v[1]-v[0];
-        const label=i===0?fmtV(cmPrev):i===labels.length-1?fmtV(cmCur):(size>=0?'+':'')+fmtV(size);
-        c.fillStyle=i===0||i===labels.length-1?'#4F46E5':size>=0?'#059669':'#DC2626';
-        const y=size<0?Math.max(bar.y,bar.base)+14:Math.min(bar.y,bar.base)-5;
-        c.fillText(label,bar.x,y);
-      });
-      c.restore();
-    }}]
-  });
-}
-
-function renderQCCompareChart(){
-  dc('qcCmp');
-  const canvas=document.getElementById('qcCompareChart');
-  if(!canvas||!_qcRCur||!_qcRPrev)return;
-  const rCur=_qcRCur,rPrev=_qcRPrev;
-  const curLbl=periodLabel(_qcCurP,_qcG);
-  const prevLbl=periodLabel(_qcPrevP,_qcG);
-
-  const getRoi=row=>{if(!row)return null;const cm=gv(row,'공헌이익'),ns=gv(row,'순매출');if(cm!=null&&ns&&ns!==0)return cm/ns*100;return rv(row,'ROI');};
-  const metrics=[
-    {k:'ROI',l:'ROI',get:r=>getRoi(r),isRoi:true},
-    {k:'매출원가율',l:'원가율',get:r=>rv(r,'매출원가율')},
-    {k:'마케팅성 비중',l:'마케팅비율',get:r=>rv(r,'마케팅성 비중')},
-    {k:'운반비성 비중',l:'운반비율',get:r=>rv(r,'운반비성 비중')},
-    {k:'PG성 비중',l:'PG비율',get:r=>rv(r,'PG성 비중')},
-  ];
-
-  const prevData=metrics.map(m=>{const v=m.get(rPrev);return v!=null?parseFloat(v.toFixed(1)):null;});
-  const curData=metrics.map(m=>{const v=m.get(rCur);return v!=null?parseFloat(v.toFixed(1)):null;});
-  const curColors=metrics.map((m,i)=>{
-    const c=curData[i],p=prevData[i];
-    if(c==null||p==null||Math.abs(c-p)<0.1)return'rgba(148,163,184,0.6)';
-    const improved=m.isRoi?c>p:c<p;
-    return improved?'rgba(16,185,129,0.75)':'rgba(239,68,68,0.75)';
-  });
-
-  charts.qcCmp=new Chart(canvas.getContext('2d'),{
-    type:'bar',
-    data:{
-      labels:metrics.map(m=>m.l),
-      datasets:[
-        {label:prevLbl,data:prevData,backgroundColor:'rgba(148,163,184,0.35)',borderColor:'#94A3B8',borderWidth:1,borderRadius:3,barPercentage:0.75},
-        {label:curLbl,data:curData,backgroundColor:curColors,borderColor:curColors.map(c=>c.replace('0.75','1').replace('0.6','1')),borderWidth:1,borderRadius:3,barPercentage:0.75},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{position:'top',labels:{font:{size:9},boxWidth:10,padding:8}},
-        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):'-'}%`}}
-      },
-      scales:{
-        x:{ticks:{font:{size:9}}},
-        y:{ticks:{callback:v=>v+'%',font:{size:9}},grid:{color:'rgba(0,0,0,0.04)'}}
-      }
-    }
+    plugins:[
+      {id:'qc-sep',afterDraw(chart){
+        const{ctx,chartArea:{left,right},scales:{y}}=chart;
+        if(items.length<2)return;
+        const y0=y.getPixelForValue(0),y1=y.getPixelForValue(1);
+        const sy=(y0+y1)/2;
+        ctx.save();ctx.strokeStyle='rgba(0,0,0,0.13)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(left,sy);ctx.lineTo(right,sy);ctx.stroke();ctx.restore();
+      }},
+      {id:'qc-ann',afterDatasetsDraw(chart){
+        const{ctx}=chart;
+        ctx.save();ctx.font='9px Pretendard,sans-serif';ctx.textBaseline='middle';
+        cmData.forEach((v,i)=>{
+          if(v==null)return;
+          const item=items[i];
+          const bar=chart.getDatasetMeta(0).data[i];
+          const pad=5;
+          const isRight=v>=0;
+          ctx.textAlign=isRight?'left':'right';
+          const lx=isRight?bar.x+pad:bar.x-pad;
+          // ROI %p annotation for rate factors and total
+          if(item.roi!=null){
+            ctx.fillStyle=item.isTotal?'#6366F1':item.roi>=0?'#059669':'#DC2626';
+            ctx.fillText(fmtROI(item.roi),lx,bar.y);
+          } else if(item.isVol){
+            // volume bar: show "거래량↑" label
+            ctx.fillStyle='#94A3B8';
+            ctx.fillText('ROI 영향 없음',lx,bar.y);
+          }
+        });
+        ctx.restore();
+      }}
+    ]
   });
 }
 
