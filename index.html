@@ -1143,66 +1143,62 @@ function renderQCReview(){
     if(nsD===0)return'';
     const fmtN=v=>{const a=Math.abs(v);return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');};
     const fi=v=>Math.round(v).toLocaleString('ko-KR');
-    const tdEff=(v,sh)=>{
-      if(v==null)return'<td class="rat">-</td>';
-      const cls=Math.abs(v)<1000?'rat':(v>0?'qc-dt-pos':'qc-dt-neg');
-      const s=(v>=0?'▲ +':'▼ ')+fmtN(v);
-      return`<td class="${cls}">${s}${sh!=null?` <span class="qc-ns-share">(${sh}%)</span>`:''}</td>`;
+    // 변동액 td: 단위 붙인 절대 변동값
+    const tdD=(d,unit)=>{
+      if(d==null)return'<td class="rat">-</td>';
+      const cls=Math.abs(d)<0.05?'rat':(d>0?'qc-dt-pos':'qc-dt-neg');
+      return`<td class="${cls}">${d>=0?'▲ +':'▼ '}${typeof d==='number'&&!Number.isInteger(d)?Math.abs(d).toFixed(1):fi(Math.round(Math.abs(d)))}${unit}</td>`;
     };
-    const absD=Math.abs(nsD)||1;
-    const pct=v=>Math.round(Math.abs(v)/absD*100);
-    // NS단가 = 순매출/구매자수 (decomp 기준)
+    // 변동% td: 상대 변동률
+    const tdPct=(cur,prev,isAbsDiff)=>{
+      if(cur==null||prev==null||!prev)return'<td class="rat">-</td>';
+      const d=isAbsDiff?cur-prev:(cur-prev)/Math.abs(prev)*100;
+      const cls=Math.abs(d)<0.05?'rat':(d>0?'qc-dt-pos':'qc-dt-neg');
+      return`<td class="${cls}">${d>=0?'+':''}${d.toFixed(1)}%${isAbsDiff?'p':''}</td>`;
+    };
     const pCur=nsCur/buyCur,pPrev=nsPrev/buyPrev;
     const dauCur=gv(rC,'Avg. dau'),dauPrev=gv(rP,'Avg. dau');
     let rows='',formula='구매자수 × 단가';
     if(dauCur&&dauPrev){
-      // 3-way sequential: DAU × CVR × NS단가 → 합산 = Δ순매출 (exact)
-      const C=buyCur/dauCur,C0=buyPrev/dauPrev;
-      const dauEff=Math.round((dauCur-dauPrev)*C0*pPrev);
-      const cvrEff=Math.round(dauCur*(C-C0)*pPrev);
-      const pEff=Math.round(dauCur*C*(pCur-pPrev));
-      const cvrCur=C*100,cvrPrev=C0*100;
+      const cvrCur=buyCur/dauCur*100,cvrPrev=buyPrev/dauPrev*100;
       formula='DAU × CVR × 단가';
       rows=`<tr>
         <td class="lbl">DAU</td>
         <td>${fi(dauPrev)}명</td><td>${fi(dauCur)}명</td>
-        ${tdEff(dauEff,pct(dauEff))}
+        ${tdD(dauCur-dauPrev,'명')}${tdPct(dauCur,dauPrev,false)}
       </tr><tr>
         <td class="lbl">CVR</td>
         <td>${cvrPrev.toFixed(1)}%</td><td>${cvrCur.toFixed(1)}%</td>
-        ${tdEff(cvrEff,pct(cvrEff))}
+        ${tdD(cvrCur-cvrPrev,'%p')}${tdPct(cvrCur,cvrPrev,true)}
       </tr><tr>
         <td class="lbl">단가</td>
         <td>${fi(Math.round(pPrev))}원</td><td>${fi(Math.round(pCur))}원</td>
-        ${tdEff(pEff,pct(pEff))}
+        ${tdD(pCur-pPrev,'원')}${tdPct(pCur,pPrev,false)}
       </tr>`;
     }else{
-      // 2-way: 구매자수 × NS단가 (exact)
-      const volEff=Math.round((buyCur-buyPrev)*pPrev);
-      const pEff=Math.round((pCur-pPrev)*buyCur);
       rows=`<tr>
         <td class="lbl">구매자수</td>
         <td>${fi(buyPrev)}명</td><td>${fi(buyCur)}명</td>
-        ${tdEff(volEff,pct(volEff))}
+        ${tdD(buyCur-buyPrev,'명')}${tdPct(buyCur,buyPrev,false)}
       </tr><tr>
         <td class="lbl">단가</td>
         <td>${fi(Math.round(pPrev))}원</td><td>${fi(Math.round(pCur))}원</td>
-        ${tdEff(pEff,pct(pEff))}
+        ${tdD(pCur-pPrev,'원')}${tdPct(pCur,pPrev,false)}
       </tr>`;
     }
     const nsRow=`<tr class="r-cm">
       <td class="lbl">= 순매출</td>
       <td>${fmtN(nsPrev)}</td><td>${fmtN(nsCur)}</td>
-      ${tdEff(nsD)}
+      ${tdD(nsD,'')}${tdPct(nsCur,nsPrev,false)}
     </tr>`;
     const tag=syncPeriodNote?`<span class="qc-dt-tag">${syncPeriodNote}</span>`:'';
     return`<div class="qc-dt-wrap">
       <div class="qc-dt-hdr">순매출 변동 분해 <span class="qc-dt-tag">${formula}</span> ${tag}</div>
       <table class="qc-dt">
         <thead><tr>
-          <th style="text-align:left;width:28%">항목</th>
-          <th style="width:20%">전기</th><th style="width:20%">현기</th>
-          <th style="width:32%">기여액</th>
+          <th style="text-align:left;width:24%">항목</th>
+          <th style="width:18%">전기</th><th style="width:18%">현기</th>
+          <th style="width:22%">변동액</th><th style="width:18%">변동%</th>
         </tr></thead>
         <tbody>${rows}${nsRow}</tbody>
       </table></div>`;
