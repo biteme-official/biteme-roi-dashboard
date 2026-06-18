@@ -30,6 +30,10 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .nav-l2 .div-tab.active{background:var(--blue);border-color:var(--blue)}
 .nav-l3 .div-tab{font-size:11px;padding:4px 10px;border-radius:6px}
 .nav-l3 .div-tab.active{background:var(--purple);border-color:var(--purple)}
+.nav-recent{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.nav-recent-label{font-size:10px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.nav-recent-btn{padding:4px 11px;font-size:11px;font-weight:600;border-radius:20px;cursor:pointer;border:1px dashed var(--border);background:#F8FAFC;color:var(--text-sub);transition:all .15s}
+.nav-recent-btn:hover{background:var(--navy);color:#fff;border-color:var(--navy);border-style:solid}
 
 .controls{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .ctrl-group{display:flex;align-items:center;gap:6px}
@@ -45,6 +49,10 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .tab-btn.active{background:var(--navy);color:#fff}
 .ctrl-btn{padding:4px 12px;font-size:11px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--text-sub)}
 .ctrl-btn:hover{background:#F8FAFC}
+.preset-btn{padding:5px 13px;font-size:12px;font-weight:700;border:1.5px solid var(--navy);border-radius:8px;background:#fff;color:var(--navy);cursor:pointer;transition:all .15s}
+.preset-btn:hover{background:var(--navy);color:#fff}
+@keyframes rowFlash{0%{background:#FEF3C7}100%{background:transparent}}
+.row-flash{animation:rowFlash 1.6s ease}
 .refresh-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-right:6px}
 .refresh-btn:hover{background:rgba(255,255,255,.25);transform:rotate(180deg)}
 
@@ -55,6 +63,22 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .kpi .kl{font-size:10px;color:var(--text-sub);font-weight:500;margin-bottom:4px}
 .kpi .kv{font-size:20px;font-weight:700;letter-spacing:-.3px}
 .kpi .ks{font-size:10px;margin-top:2px}.up{color:var(--green)}.dn{color:var(--red)}
+.kpi-primary .kl{font-size:11px;font-weight:700;color:var(--text)}
+.kpi-primary .kv{font-size:27px}
+.kpi-primary .ks{font-size:11px;font-weight:600}
+.kpi-copy-btn{position:absolute;top:6px;right:6px;width:20px;height:20px;border:none;background:transparent;cursor:pointer;font-size:11px;opacity:.3;border-radius:4px;padding:0;line-height:20px}
+.kpi-copy-btn:hover{opacity:1;background:rgba(0,0,0,.06)}
+.row-copy-btn{border:none;background:transparent;cursor:pointer;font-size:10px;opacity:.25;padding:0 0 0 6px;vertical-align:middle}
+.row-copy-btn:hover{opacity:1}
+tr:hover .row-copy-btn{opacity:.6}
+tr:hover .row-copy-btn:hover{opacity:1}
+.kpi.alert-danger{border-color:var(--red);background:#FEF2F2}
+.kpi.alert-danger::before{background:var(--red)}
+.kpi-spark-wrap{position:absolute;bottom:8px;right:8px;width:46px;height:18px;opacity:.8}
+.kpi-primary .kpi-spark-wrap{width:56px;height:22px}
+.kpi-spark-wrap svg{width:100%;height:100%;display:block}
+.kpi.alert-warning{border-color:var(--orange);background:#FFF7ED}
+.kpi.alert-warning::before{background:var(--orange)}
 .kpi-section{margin-bottom:14px}
 .kpi-total-label{font-size:10px;font-weight:700;color:var(--text-sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;padding:0 2px;display:none}
 .kpi-total-label.show{display:block}
@@ -65,6 +89,8 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .kpi-row--month{gap:7px}
 .kpi-row--month .kpi{padding:9px 12px;background:#F8FAFC;border-color:#E8EDF5}
 .kpi-row--month .kpi::before{height:2px;opacity:.7}
+.kpi-row--month .kpi.alert-danger{border-color:var(--red);background:#FEF2F2}
+.kpi-row--month .kpi.alert-warning{border-color:var(--orange);background:#FFF7ED}
 .kpi-row--month .kpi .kl{font-size:9px;color:var(--text-muted)}
 .kpi-row--month .kpi .kv{font-size:15px;font-weight:700;letter-spacing:-.2px}
 
@@ -344,6 +370,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 </div>
 
 <div class="nav-tree">
+  <div class="nav-recent" id="navRecent" style="display:none"></div>
   <div class="nav-l1" id="navL1">
     <div class="div-tab active" data-div="grand_total" onclick="navClick(0,'grand_total')">전체</div>
     <div class="div-tab" data-div="platform" onclick="navClick(0,'platform')">플랫폼사업부</div>
@@ -361,6 +388,15 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 </div>
 
 <div class="controls">
+  <div class="ctrl-group">
+    <span class="ctrl-label">빠른 조회</span>
+    <button class="preset-btn" onclick="applyPreset('yesterday')">어제</button>
+    <button class="preset-btn" onclick="applyPreset('thisWeek')">이번주</button>
+    <button class="preset-btn" onclick="applyPreset('lastWeek')">지난주</button>
+    <button class="preset-btn" onclick="applyPreset('thisMonth')">이번달</button>
+    <button class="preset-btn" onclick="applyPreset('lastMonth')">지난달</button>
+  </div>
+  <div class="sep"></div>
   <div class="ctrl-group" style="flex-direction:column;align-items:flex-start;gap:6px">
     <div style="display:flex;align-items:center;gap:6px">
       <span class="ctrl-label">연도</span>
@@ -382,7 +418,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   </div>
   <div class="sep"></div>
   <div class="ctrl-group">
-    <button class="ctrl-btn" onclick="exportCSV()">CSV 다운로드</button>
+    <button class="ctrl-btn" onclick="exportCSV()" title="전체 데이터 백업/대량 분석용">전체 CSV 백업</button>
   </div>
   <div class="sep"></div>
   <div class="ctrl-group"><span class="ctrl-label" id="infoLabel">-</span></div>
@@ -391,12 +427,12 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div class="kpi-section">
 <div class="kpi-total-label" id="kpiTotalLabel">전체 TOTAL</div>
 <div class="kpi-row">
-  <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div></div>
-  <div class="kpi c-green"><div class="kl">순매출</div><div class="kv" id="k-n">-</div><div class="ks" id="k-n-c"></div></div>
-  <div class="kpi c-orange"><div class="kl">매출원가</div><div class="kv" id="k-c">-</div><div class="ks" id="k-c-c"></div></div>
-  <div class="kpi c-purple"><div class="kl">공헌이익</div><div class="kv" id="k-cm">-</div><div class="ks" id="k-cm-c"></div></div>
-  <div class="kpi c-amber"><div class="kl">ROI</div><div class="kv" id="k-r">-</div><div class="ks" id="k-r-c"></div></div>
-  <div class="kpi c-red"><div class="kl">주문건수</div><div class="kv" id="k-o">-</div><div class="ks" id="k-o-c"></div></div>
+  <div class="kpi c-blue"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div><span class="kpi-spark-wrap" id="k-g-spark"></span></div>
+  <div class="kpi c-green"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">순매출</div><div class="kv" id="k-n">-</div><div class="ks" id="k-n-c"></div><span class="kpi-spark-wrap" id="k-n-spark"></span></div>
+  <div class="kpi c-orange"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">매출원가</div><div class="kv" id="k-c">-</div><div class="ks" id="k-c-c"></div><span class="kpi-spark-wrap" id="k-c-spark"></span></div>
+  <div class="kpi kpi-primary c-purple"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">공헌이익</div><div class="kv" id="k-cm">-</div><div class="ks" id="k-cm-c"></div><span class="kpi-spark-wrap" id="k-cm-spark"></span></div>
+  <div class="kpi kpi-primary c-amber"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">ROI</div><div class="kv" id="k-r">-</div><div class="ks" id="k-r-c"></div><span class="kpi-spark-wrap" id="k-r-spark"></span></div>
+  <div class="kpi c-red"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">주문건수</div><div class="kv" id="k-o">-</div><div class="ks" id="k-o-c"></div><span class="kpi-spark-wrap" id="k-o-spark"></span></div>
 </div>
 <div id="monthKpiContainer"></div>
 </div>
@@ -636,13 +672,24 @@ function periodLabel(key,gran){
 
 function yearOfKey(key){return key.substring(0,4);}
 
+// 진행 중인 연도(cutoff 연도)와 비교할 땐 전년 '전체'가 아니라 같은 날짜까지의 YTD 합으로 비교해야 공정함
+function ytdSum(vd,year,cutoffMD){
+  const dLvl=vd.D||{};
+  const data={};
+  for(const[day,row] of Object.entries(dLvl)){
+    if(!row||day.substring(0,4)!==year||day.substring(5)>cutoffMD)continue;
+    for(const[k,v] of Object.entries(row)){if(v==null)continue;if(!data[k])data[k]=0;data[k]+=v;}
+  }
+  return Object.keys(data).length?data:null;
+}
+
 function getPeriods(){
   let vd=(curDiv==='etc_channel')?null:D.views[curDiv];
   if(!vd)return[];
   let g=curGran==='WD'?'D':curGran;
   let lvl=vd[g]||{};
   let periods=Object.keys(lvl).filter(k=>selYears.has(yearOfKey(k))).sort();
-  if(curGran==='D'&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
+  if((curGran==='D'||curGran==='WD')&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
   return periods;
 }
 
@@ -650,6 +697,7 @@ function getVD(){return(curDiv==='etc_channel')?null:D.views[curDiv];}
 
 function toggleDeliveryDetail(){
   showDeliveryDetail=!showDeliveryDetail;
+  savePersistedState();
   renderPNL();
 }
 
@@ -660,9 +708,7 @@ function renderDeliveryDetail(){
   const vd=getVD();if(!vd){sec.style.display='none';return;}
   const g=curGran==='WD'?'W':curGran;
   const lvl=vd[g]||{};
-  const periods=curGran==='WD'
-    ?Object.keys(lvl).filter(k=>selYears.has(yearOfKey(k))).sort()
-    :getPeriods();
+  const periods=curGran==='WD'?[]:getPeriods();
   const COMMON=[
     {key:'주문건수',label:'주문건수'},
     {key:'스스_도착보장 비중',label:'도착보장 비중',ratio:true},
@@ -709,14 +755,32 @@ function renderDeliveryDetail(){
     const s=Math.round(v).toLocaleString('ko-KR');
     return v<0?`<span class="val-neg">${s}</span>`:s;
   };
+  const buildRow=(label,row,opts)=>{
+    opts=opts||{};
+    const trCls=opts.summary?' class="week-summary"':'';
+    const tdStyle=opts.indent?' style="padding-left:24px;font-weight:400;color:var(--text-sub)"':'';
+    const cellStyle=opts.indent?' style="font-weight:400"':'';
+    let r=`<tr${trCls}><td${tdStyle}>${label}</td>`;
+    COMMON.forEach(m=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
+    NBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}${i===0?' grp-left-nbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
+    GBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}${i===0?' grp-left-gbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
+    r+='</tr>';
+    return r;
+  };
   let tbody='';
-  for(const p of periods){
-    const row=lvl[p]||{};
-    tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
-    COMMON.forEach(m=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}">${fmtV(val,m.ratio)}</td>`;});
-    NBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}${i===0?' grp-left-nbd':''}">${fmtV(val,m.ratio)}</td>`;});
-    GBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);tbody+=`<td class="${detailCls(m)}${i===0?' grp-left-gbd':''}">${fmtV(val,m.ratio)}</td>`;});
-    tbody+='</tr>';
+  if(curGran==='WD'){
+    const dLvl=vd['D']||{};
+    let dayPeriods=Object.keys(dLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(selMonths.size>0)dayPeriods=dayPeriods.filter(p=>selMonths.has(p.substring(0,7)));
+    let weekGroups=[];let curWeek=null,curGroup=[];
+    dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
+    if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
+    weekGroups.forEach(wg=>{
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',lvl[wg.week]||{},{summary:true});
+      wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),dLvl[d]||{},{indent:true});});
+    });
+  }else{
+    for(const p of periods){tbody+=buildRow(periodLabel(p,g),lvl[p]||{});}
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>N배송 vs 일반배송 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
   sec.style.display='block';
@@ -801,7 +865,7 @@ function renderPNL(){
       let weekLabel=periodLabel(g.week,'W');
       let promoVal=getPromo(g.week);
       let promoHtml=`<td><input class="promo-input" type="text" placeholder="프로모션명" value="${promoVal.replace(/"/g,'&quot;')}" onchange="savePromo('${g.week}',this.value)"></td>`;
-      html+=`<tr class="week-summary ${yrSep}"><td><span class="week-label">📅 ${weekLabel} 합산</span></td>${promoHtml}`;
+      html+=`<tr class="week-summary ${yrSep}"><td><span class="week-label">📅 ${weekLabel} 합산</span><button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td>${promoHtml}`;
       avail.forEach(m=>{
         let cls=measureCls(m);
         if(wData){
@@ -822,7 +886,7 @@ function renderPNL(){
 
       // Daily rows
       g.days.forEach(d=>{
-        html+=`<tr><td style="padding-left:24px;font-weight:400;color:var(--text-sub)">${periodLabel(d,'D')}</td><td></td>`;
+        html+=`<tr><td style="padding-left:24px;font-weight:400;color:var(--text-sub)">${periodLabel(d,'D')}<button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td><td></td>`;
         avail.forEach(m=>{
           let cls=measureCls(m);
           html+=`<td class="${cls}" style="font-weight:400">${fmtCell(m.ratio?rv(lvl[d],m.key):gv(lvl[d],m.key),m.ratio)}</td>`;
@@ -835,7 +899,7 @@ function renderPNL(){
       let yr=yearOfKey(p);
       let yrSep=(yr!==prevYear&&prevYear!=='')?'yr-sep':'';
       prevYear=yr;
-      html+=`<tr class="${yrSep}"><td>${periodLabel(p,curGran)}</td>`;
+      html+=`<tr class="${yrSep}" data-period="${p}"><td>${periodLabel(p,curGran)}<button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td>`;
       avail.forEach(m=>{
         let cls=measureCls(m);
         let val;
@@ -859,7 +923,18 @@ function renderPNL(){
   // Total KPI — always shows selected year totals regardless of month filter
   let kpiData={};
   for(let yr of selYears){let yd=vd.Y[yr];if(!yd)continue;for(let[k,v] of Object.entries(yd)){if(v==null)continue;if(!kpiData[k])kpiData[k]=0;kpiData[k]+=v;}}
-  setKPIs(kpiData);
+  // 단일 연도 선택 시에만 전년 동기 비교 — 다년/복수년 선택은 "전기"가 모호해서 비교 생략
+  let prevKpiData=null;
+  if(selYears.size===1&&D.cutoff){
+    let yr=[...selYears][0];
+    let prevYr=String(parseInt(yr)-1);
+    if(vd.Y[prevYr]){
+      // 진행 중인(cutoff) 연도는 전년 '전체'가 아니라 같은 날짜까지의 YTD로 비교해야 공정함
+      prevKpiData=(yr===D.cutoff.substring(0,4))?ytdSum(vd,prevYr,D.cutoff.substring(5)):vd.Y[prevYr];
+    }
+  }
+  let sparkPeriods=periods.slice(-10);
+  setKPIs(kpiData,prevKpiData,{periods:sparkPeriods,lvl});
   renderMonthKPIs(vd['D']||{});
 
   let viewName=VIEW_NAMES[curDiv]||curDiv;
@@ -1394,6 +1469,7 @@ function renderQCReview(){
 
 function toggleB2bGradeDetail(){
   showB2bGradeDetail=!showB2bGradeDetail;
+  savePersistedState();
   renderPNL();
 }
 
@@ -1404,9 +1480,7 @@ function renderB2bGradeDetail(){
   const vd=getVD();if(!vd){sec.style.display='none';return;}
   const g=curGran==='WD'?'W':curGran;
   const lvl=vd[g]||{};
-  const periods=curGran==='WD'
-    ?Object.keys(lvl).filter(k=>selYears.has(yearOfKey(k))).sort()
-    :getPeriods();
+  const periods=curGran==='WD'?[]:getPeriods();
 
   const COMMON=[
     {key:'주문건수',label:'주문건수'},
@@ -1454,25 +1528,44 @@ function renderB2bGradeDetail(){
     return gradeNS-gradeCost-(gradeNS*varRatio);
   };
 
-  let tbody='';
-  for(const p of periods){
-    const row=lvl[p]||{};
-    tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
+  const buildRow=(label,row,opts)=>{
+    opts=opts||{};
+    const trCls=opts.summary?' class="week-summary"':'';
+    const tdStyle=opts.indent?' style="padding-left:24px;font-weight:400;color:var(--text-sub)"':'';
+    const cellStyle=opts.indent?' style="font-weight:400"':'';
+    let r=`<tr${trCls}><td${tdStyle}>${label}</td>`;
     COMMON.forEach(m=>{
       const v=m.ratio?rv(row,m.key):gv(row,m.key);
-      tbody+=`<td class="${commonCls(m)}">${fmtV(v,m.ratio)}</td>`;
+      r+=`<td class="${commonCls(m)}"${cellStyle}>${fmtV(v,m.ratio)}</td>`;
     });
     GRADE_NAMES.forEach(name=>{
-      const g=GRADE_GRP[name];
+      const grp=GRADE_GRP[name];
       const keys=GRADE_KEYS[name];
       const gradeNS=gv(row,keys.ns);
       const gradeCost=gv(row,keys.cost);
       const gradeCM=computeGradeCM(row,gradeNS,gradeCost);
       const gradeROI=(gradeCM!=null&&gradeNS)?gradeCM/gradeNS*100:null;
       const vals=[gv(row,keys.ord),gv(row,keys.gmv),gradeNS,gradeCost,gradeCM,gradeROI];
-      vals.forEach((v,i)=>{const cls=[gradeCls(i),i===0?`grp-left-${g} col-narrow`:''].filter(Boolean).join(' ');tbody+=`<td class="${cls}">${fmtV(v,i===5)}</td>`;});
+      vals.forEach((v,i)=>{const cls=[gradeCls(i),i===0?`grp-left-${grp} col-narrow`:''].filter(Boolean).join(' ');r+=`<td class="${cls}"${cellStyle}>${fmtV(v,i===5)}</td>`;});
     });
-    tbody+='</tr>';
+    r+='</tr>';
+    return r;
+  };
+
+  let tbody='';
+  if(curGran==='WD'){
+    const dLvl=vd['D']||{};
+    let dayPeriods=Object.keys(dLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(selMonths.size>0)dayPeriods=dayPeriods.filter(p=>selMonths.has(p.substring(0,7)));
+    let weekGroups=[];let curWeek=null,curGroup=[];
+    dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
+    if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
+    weekGroups.forEach(wg=>{
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',lvl[wg.week]||{},{summary:true});
+      wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),dLvl[d]||{},{indent:true});});
+    });
+  }else{
+    for(const p of periods){tbody+=buildRow(periodLabel(p,g),lvl[p]||{});}
   }
 
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>고객 등급별 비교 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
@@ -1686,7 +1779,7 @@ function renderChannel(){
   let isWD=curGran==='WD';
   let chGran=isWD?'D':curGran;
   let periods=Object.keys(ch[chGran]||{}).filter(k=>selYears.has(yearOfKey(k))).sort();
-  if(curGran==='D'&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
+  if((curGran==='D'||curGran==='WD')&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
   let lvl=ch[chGran]||{};
 
   let allCh=new Set();
@@ -1755,17 +1848,64 @@ function renderChannel(){
   renderChannelChart(periods,lvl,channels);
 }
 
-function setKPIs(data){
+// KPI 카드용 미니 추이 — 트렌드 차트까지 스크롤 안 가도 최근 흐름이 보이게
+function sparklineSVG(values){
+  const w=64,h=22;
+  const idxVals=values.map((v,i)=>({i,v})).filter(p=>p.v!=null);
+  if(idxVals.length<2)return '';
+  const vs=idxVals.map(p=>p.v);
+  const min=Math.min(...vs),max=Math.max(...vs);
+  const range=(max-min)||1;
+  const step=values.length>1?w/(values.length-1):0;
+  const pts=idxVals.map(p=>(p.i*step).toFixed(1)+','+(h-((p.v-min)/range)*h).toFixed(1)).join(' ');
+  const up=vs[vs.length-1]>=vs[0];
+  const color=up?'#10B981':'#EF4444';
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+// inverse=true: 값이 늘어나는 게 나쁜 지표(원가성). ratio=true: %p 단위 비교, false: % 변동률 비교
+function calcKpiStatus(curV,prevV,ratio,inverse){
+  if(curV==null||prevV==null||(!ratio&&prevV===0))return null;
+  let diff,txt;
+  if(ratio){diff=curV-prevV;txt=(diff>=0?'▲ +':'▼ ')+Math.abs(diff).toFixed(1)+'%p';}
+  else{diff=(curV-prevV)/Math.abs(prevV)*100;txt=(diff>=0?'▲ +':'▼ ')+Math.abs(diff).toFixed(1)+'%';}
+  const eff=inverse?-diff:diff;
+  const dangerThr=ratio?-5:-10,warnThr=ratio?-2:-3,goodThr=ratio?2:3;
+  let status='neutral';
+  if(eff<=dangerThr)status='danger';else if(eff<=warnThr)status='warning';else if(eff>=goodThr)status='good';
+  return{cls:diff>=0?'up':'dn',txt,status};
+}
+function setKPIs(data,prevData,sparkCtx){
   let isFee=curDiv==='pf_수수료';
   let thirdLabel=isFee?'위수탁 비중':'매출원가';
   let thirdRatio=isFee;
   ['거래액','순매출',thirdLabel,'공헌이익','ROI','주문건수'].forEach((l,i)=>{
     document.getElementById(['k-g','k-n','k-c','k-cm','k-r','k-o'][i]).parentElement.querySelector('.kl').textContent=l;
   });
-  [['k-g','거래액',false],['k-n','순매출',false],['k-c',thirdLabel,thirdRatio],
-   ['k-cm','공헌이익',false],['k-r','ROI',true],['k-o','주문건수',false]].forEach(([id,key,ratio])=>{
-    document.getElementById(id).textContent=fmt(ratio?rv(data,key):gv(data,key),ratio);
-    document.getElementById(id+'-c').textContent='';
+  [['k-g','거래액',false,false],['k-n','순매출',false,false],['k-c',thirdLabel,thirdRatio,true],
+   ['k-cm','공헌이익',false,false],['k-r','ROI',true,false],['k-o','주문건수',false,false]].forEach(([id,key,ratio,inverse])=>{
+    const curV=ratio?rv(data,key):gv(data,key);
+    const kvEl=document.getElementById(id);
+    const cardEl=kvEl.parentElement;
+    const ksEl=document.getElementById(id+'-c');
+    kvEl.textContent=fmt(curV,ratio);
+    cardEl.classList.remove('alert-danger','alert-warning');
+    ksEl.className='ks';
+    ksEl.textContent='';
+    const sparkEl=document.getElementById(id+'-spark');
+    if(sparkEl){
+      const series=sparkCtx?sparkCtx.periods.map(p=>ratio?rv(sparkCtx.lvl[p],key):gv(sparkCtx.lvl[p],key)):[];
+      sparkEl.innerHTML=sparklineSVG(series);
+    }
+    if(prevData){
+      const prevV=ratio?rv(prevData,key):gv(prevData,key);
+      const r=calcKpiStatus(curV,prevV,ratio,inverse);
+      if(r){
+        ksEl.textContent='전년 대비 '+r.txt;
+        ksEl.classList.add(r.cls);
+        if(r.status==='danger')cardEl.classList.add('alert-danger');
+        else if(r.status==='warning')cardEl.classList.add('alert-warning');
+      }
+    }
   });
 }
 
@@ -1773,33 +1913,59 @@ function renderMonthKPIs(dailyLvl){
   const container=document.getElementById('monthKpiContainer');
   const totalLabel=document.getElementById('kpiTotalLabel');
   if(!container)return;
-  const show=(curGran==='D'&&selMonths.size>0);
+  const show=((curGran==='D'||curGran==='WD')&&selMonths.size>0);
   if(totalLabel){totalLabel.classList.toggle('show',show);}
   if(!show){container.innerHTML='';return;}
   let isFee=curDiv==='pf_수수료';
   let thirdLabel=isFee?'위수탁 비중':'매출원가';
+  const sumMonth=(key)=>{
+    const data={};
+    for(const[day,row] of Object.entries(dailyLvl)){
+      if(!row||day.substring(0,7)!==key)continue;
+      for(const[k,v] of Object.entries(row)){if(v==null)continue;if(!data[k])data[k]=0;data[k]+=v;}
+    }
+    return Object.keys(data).length?data:null;
+  };
+  const prevMonthKey=(m)=>{
+    let yr=parseInt(m.substring(0,4)),mo=parseInt(m.substring(5))-1;
+    if(mo<1){mo=12;yr--;}
+    return yr+'-'+String(mo).padStart(2,'0');
+  };
+  const metrics=[['거래액',false,false,'c-blue'],['순매출',false,false,'c-green'],[thirdLabel,isFee,true,'c-orange'],
+    ['공헌이익',false,false,'c-purple'],['ROI',true,false,'c-amber'],['주문건수',false,false,'c-red']];
   let html='';
   for(const m of [...selMonths].sort()){
     const mo=parseInt(m.substring(5));
     const yr=m.substring(0,4);
     const multiYr=selYears.size>1;
     const monthLabel=multiYr?`${yr.substring(2)}.${mo}월`:`${mo}월`;
-    const data={};
-    for(const[day,row] of Object.entries(dailyLvl)){
-      if(day.substring(0,7)!==m||!row)continue;
-      for(const[k,v] of Object.entries(row)){if(v==null)continue;if(!data[k])data[k]=0;data[k]+=v;}
-    }
-    const thirdVal=isFee?fmt(rv(data,thirdLabel),true):fmt(gv(data,'매출원가'),false);
+    const data=sumMonth(m)||{};
+    // 전월 대비를 메인 알럿으로, 전년 동월 대비는 보조 정보로 — 월 필터로 들어왔을 때는 "최근 추세 이상"을 잡는 게 우선
+    const prevMData=sumMonth(prevMonthKey(m));
+    const prevYData=sumMonth((parseInt(yr)-1)+'-'+m.substring(5));
+    let cardsHtml='';
+    metrics.forEach(([key,ratio,inverse,cls])=>{
+      const curV=ratio?rv(data,key):gv(data,key);
+      let ksHtml='',alertCls='';
+      if(prevMData){
+        const prevV=ratio?rv(prevMData,key):gv(prevMData,key);
+        const r=calcKpiStatus(curV,prevV,ratio,inverse);
+        if(r){
+          ksHtml=`<span class="${r.cls}">전월 대비 ${r.txt}</span>`;
+          if(r.status==='danger')alertCls=' alert-danger';
+          else if(r.status==='warning')alertCls=' alert-warning';
+          if(prevYData){
+            const prevVY=ratio?rv(prevYData,key):gv(prevYData,key);
+            const ry=calcKpiStatus(curV,prevVY,ratio,inverse);
+            if(ry)ksHtml+=`<span style="color:var(--text-muted);font-weight:400"> · 전년 동월 ${ry.txt}</span>`;
+          }
+        }
+      }
+      cardsHtml+=`<div class="kpi ${cls}${alertCls}"><div class="kl">${key}</div><div class="kv">${fmt(curV,ratio)}</div><div class="ks">${ksHtml}</div></div>`;
+    });
     html+=`<div class="kpi-month-block">
       <div class="kpi-month-label"><span class="kpi-month-tag">${monthLabel}</span></div>
-      <div class="kpi-row kpi-row--month">
-        <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv">${fmt(gv(data,'거래액'),false)}</div><div class="ks"></div></div>
-        <div class="kpi c-green"><div class="kl">순매출</div><div class="kv">${fmt(gv(data,'순매출'),false)}</div><div class="ks"></div></div>
-        <div class="kpi c-orange"><div class="kl">${thirdLabel}</div><div class="kv">${thirdVal}</div><div class="ks"></div></div>
-        <div class="kpi c-purple"><div class="kl">공헌이익</div><div class="kv">${fmt(gv(data,'공헌이익'),false)}</div><div class="ks"></div></div>
-        <div class="kpi c-amber"><div class="kl">ROI</div><div class="kv">${fmt(rv(data,'ROI'),true)}</div><div class="ks"></div></div>
-        <div class="kpi c-red"><div class="kl">주문건수</div><div class="kv">${fmt(gv(data,'주문건수'),false)}</div><div class="ks"></div></div>
-      </div>
+      <div class="kpi-row kpi-row--month">${cardsHtml}</div>
     </div>`;
   }
   container.innerHTML=html;
@@ -1810,7 +1976,8 @@ function toggleRowHL(el){
   tr.classList.toggle('row-hl');
 }
 
-function navClick(level,d){
+function navClick(level,d,opts){
+  opts=opts||{};
   curDiv=d;
   selMonths.clear();
   // 사업부/채널 탭 전환 시 이전 화면의 QC 비교 설정(전년동기/직접입력)이 그대로 적용되면 혼동을 줘 기본값으로 리셋
@@ -1837,6 +2004,79 @@ function navClick(level,d){
   if(level===2){document.querySelectorAll('#navL3Items .div-tab').forEach(t=>t.classList.toggle('active',t.dataset.div===d));}
   updateMonthFilter();
   render();
+  if(!opts.skipRecent)recordRecentDiv(d);
+}
+
+// 채널 트리에서 div가 속한 L1/L2/L3 조상 경로를 찾아 navClick 체인으로 재구성
+function navPathFor(div){
+  if(['grand_total','platform','brand_total','overseas'].includes(div))return{l1:div};
+  for(const l1 of Object.keys(L2_MAP)){
+    if(L2_MAP[l1].some(i=>i.div===div))return{l1,l2:div};
+  }
+  for(const l2 of Object.keys(L3_MAP)){
+    if(L3_MAP[l2].some(i=>i.div===div)){
+      const l1=Object.keys(L2_MAP).find(k=>L2_MAP[k].some(i=>i.div===l2));
+      return{l1,l2,l3:div};
+    }
+  }
+  return{l1:'grand_total'};
+}
+function jumpToDiv(div){
+  const path=navPathFor(div);
+  navClick(0,path.l1,{skipRecent:true});
+  if(path.l2)navClick(1,path.l2,{skipRecent:true});
+  if(path.l3)navClick(2,path.l3,{skipRecent:true});
+  recordRecentDiv(div);
+}
+
+let recentDivs=[];
+function recentDivLabel(d){return d==='etc_channel'?'그외채널 CM':(VIEW_NAMES[d]||d);}
+function recordRecentDiv(d){
+  recentDivs=recentDivs.filter(x=>x!==d);
+  recentDivs.unshift(d);
+  if(recentDivs.length>6)recentDivs=recentDivs.slice(0,6);
+  savePersistedState();
+  renderRecentDivs();
+}
+function renderRecentDivs(){
+  const wrap=document.getElementById('navRecent');
+  if(!wrap)return;
+  const list=recentDivs.filter(d=>d!==curDiv).slice(0,5);
+  if(list.length===0){wrap.style.display='none';wrap.innerHTML='';return;}
+  wrap.style.display='flex';
+  wrap.innerHTML='<span class="nav-recent-label">최근 본</span>'+list.map(d=>`<button class="nav-recent-btn" onclick="jumpToDiv('${d}')">${recentDivLabel(d)}</button>`).join('');
+}
+
+const LS_KEY='biteme_roi_dash_state_v1';
+function savePersistedState(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify({
+      toggles:{showDeliveryDetail,showGonguDetail,showB2bGradeDetail,showSsfwGonguDetail,showCompiraGonguDetail},
+      recentDivs,
+      filters:{curDiv,curGran,selYears:[...selYears],selMonths:[...selMonths]}
+    }));
+  }catch(e){}
+}
+function loadPersistedState(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    if(s.toggles){
+      showDeliveryDetail=!!s.toggles.showDeliveryDetail;
+      showGonguDetail=!!s.toggles.showGonguDetail;
+      showB2bGradeDetail=!!s.toggles.showB2bGradeDetail;
+      showSsfwGonguDetail=!!s.toggles.showSsfwGonguDetail;
+      showCompiraGonguDetail=!!s.toggles.showCompiraGonguDetail;
+    }
+    if(Array.isArray(s.recentDivs))recentDivs=s.recentDivs;
+    if(s.filters){
+      if(s.filters.curDiv)curDiv=s.filters.curDiv;
+      if(s.filters.curGran)curGran=s.filters.curGran;
+      if(Array.isArray(s.filters.selYears)&&s.filters.selYears.length)selYears=new Set(s.filters.selYears);
+      if(Array.isArray(s.filters.selMonths))selMonths=new Set(s.filters.selMonths);
+    }
+  }catch(e){}
 }
 
 function toggleYear(yr){
@@ -1845,18 +2085,70 @@ function toggleYear(yr){
   }else{
     selYears.add(yr);
   }
-  selMonths.clear();
   document.querySelectorAll('.yr-btn').forEach(b=>b.classList.toggle('active',selYears.has(b.dataset.yr)));
   updateMonthFilter();
   render();
+  savePersistedState();
 }
 
 function switchGran(g){
   curGran=g;
-  selMonths.clear();
   document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===g));
   updateMonthFilter();
   render();
+  savePersistedState();
+}
+
+// 빠른 조회 프리셋 — D.cutoff(최신 데이터 일자) 기준 상대 기간으로 점프
+function applyPreset(preset){
+  const cutoff=D.cutoff;
+  if(!cutoff)return;
+  const[cy,cm,cd]=cutoff.split('-').map(Number);
+  let targetGran,targetYear,targetPeriodKey;
+  if(preset==='yesterday'){
+    targetGran='D';
+    targetYear=String(cy);
+    targetPeriodKey=cutoff;
+  }else if(preset==='thisWeek'||preset==='lastWeek'){
+    targetGran='W';
+    let dt=new Date(cy,cm-1,cd);
+    if(preset==='lastWeek')dt.setDate(dt.getDate()-7);
+    targetYear=String(dt.getFullYear());
+    let ds=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+    targetPeriodKey=isoWeekKey(ds);
+  }else{
+    targetGran='M';
+    let dt=new Date(cy,cm-1,1);
+    if(preset==='lastMonth')dt.setMonth(dt.getMonth()-1);
+    targetYear=String(dt.getFullYear());
+    targetPeriodKey=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  }
+  selYears.clear();selYears.add(targetYear);
+  curGran=targetGran;
+  selMonths.clear();
+  if(targetGran==='D')selMonths.add(targetPeriodKey.substring(0,7));
+  document.querySelectorAll('.yr-btn[data-yr]').forEach(b=>b.classList.toggle('active',selYears.has(b.dataset.yr)));
+  document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===targetGran));
+  updateMonthFilter();
+  render();
+  highlightPeriodRow(targetPeriodKey);
+  savePersistedState();
+}
+
+function highlightPeriodRow(periodKey){
+  requestAnimationFrame(()=>{
+    const row=document.querySelector('#dBody tr[data-period="'+periodKey+'"]');
+    const scrollBox=document.getElementById('tableScroll');
+    if(!row||!scrollBox)return;
+    // 페이지 스크롤로 테이블 컨테이너를 화면 상단에 맞춤 — sticky 헤더가 화면 밖으로 밀리는 것 방지
+    scrollBox.scrollIntoView({block:'start'});
+    const headerH=document.getElementById('dHead').getBoundingClientRect().height||40;
+    const delta=row.getBoundingClientRect().top-scrollBox.getBoundingClientRect().top;
+    scrollBox.scrollTop=Math.max(0,scrollBox.scrollTop+delta-headerH-16);
+    scrollBox.scrollLeft=0;
+    row.classList.add('row-flash');
+    setTimeout(()=>row.classList.remove('row-flash'),1600);
+  });
 }
 
 function initYears(){
@@ -1870,12 +2162,14 @@ function initYears(){
 function updateMonthFilter(){
   const row=document.getElementById('monthFilterRow');
   if(!row)return;
-  const show=(curGran==='D');
+  const show=(curGran==='D'||curGran==='WD');
   row.style.display=show?'flex':'none';
   row.style.alignItems='center';
-  if(!show){selMonths.clear();return;}
+  if(!show)return; // 단위를 바꿔도 선택해둔 월은 그대로 들고 있다가, 다시 일간/주간+일간으로 돌아오면 복원됨
   const lvl=(curDiv==='etc_channel')?(D.channel_cm['D']||{}):(D.views[curDiv]?.D||{});
   const months=[...new Set(Object.keys(lvl).filter(k=>selYears.has(yearOfKey(k))).map(k=>k.substring(0,7)))].sort();
+  const validMonths=new Set(months);
+  for(const m of[...selMonths])if(!validMonths.has(m))selMonths.delete(m); // 연도/채널 변경으로 더 이상 존재하지 않는 월만 제거
   const multiYr=selYears.size>1;
   let html=`<button class="yr-btn${selMonths.size===0?' active':''}" onclick="selectMonth(null)">전체</button>`;
   months.forEach(m=>{
@@ -1892,6 +2186,7 @@ function selectMonth(m){
   else{selMonths.add(m);}
   updateMonthFilter();
   render();
+  savePersistedState();
 }
 
 // Charts
@@ -1967,12 +2262,62 @@ function exportCSV(){
   let t=document.getElementById('dataTable');
   let csv=[];
   t.querySelectorAll('tr').forEach(r=>{
-    let row=[];r.querySelectorAll('th,td').forEach(c=>row.push('"'+c.textContent.replace(/"/g,'""')+'"'));
+    let row=[];r.querySelectorAll('th,td').forEach(c=>{
+      const clone=c.cloneNode(true);
+      clone.querySelectorAll('.row-copy-btn').forEach(b=>b.remove());
+      row.push('"'+clone.textContent.replace(/"/g,'""')+'"');
+    });
     csv.push(row.join(','));
   });
   let blob=new Blob(['﻿'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
   let a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=curDiv+'_'+[...selYears].join('-')+'_'+curGran+'.csv';a.click();
+}
+
+// 행/카드 단위로 슬랙 공유용 한 줄 텍스트 복사 — 전체 CSV 다운로드 없이 핵심 숫자만 빠르게 공유
+function copyToClipboard(text){
+  const done=()=>showToast('클립보드에 복사했습니다','success',1800);
+  const fail=()=>showToast('복사 실패 — 직접 선택해서 복사해주세요','error',2200);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  }else{
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }catch(e){fail();}
+  }
+}
+function copyKpiSummary(btn){
+  const card=btn.closest('.kpi');
+  const label=card.querySelector('.kl').textContent.trim();
+  const val=card.querySelector('.kv').textContent.trim();
+  const diff=card.querySelector('.ks').textContent.trim();
+  const viewName=VIEW_NAMES[curDiv]||curDiv;
+  copyToClipboard(`${viewName} ${label}: ${val}`+(diff?` (${diff})`:''));
+}
+function copyRowSummary(btn){
+  const tr=btn.closest('tr');
+  const firstCell=tr.children[0].cloneNode(true);
+  firstCell.querySelectorAll('.row-copy-btn').forEach(b=>b.remove());
+  const label=firstCell.textContent.trim();
+  const headers=[...document.querySelectorAll('#dHead th')].map(th=>th.textContent.trim());
+  const cells=[...tr.children];
+  const KEY_METRICS=['순매출','공헌이익','ROI'];
+  const parts=[];
+  KEY_METRICS.forEach(key=>{
+    const idx=headers.indexOf(key);
+    if(idx<1||!cells[idx])return;
+    const v=cells[idx].textContent.trim();
+    if(!v||v==='-')return;
+    parts.push(key+' '+v);
+  });
+  const viewName=VIEW_NAMES[curDiv]||curDiv;
+  const text=parts.length?`${viewName} ${label} — `+parts.join(', '):`${viewName} ${label}`;
+  copyToClipboard(text);
 }
 
 let isAdmin = false;
@@ -2408,8 +2753,10 @@ async function refreshData(){
     btn.classList.remove('spinning');
   }
 }
+loadPersistedState();
 initYears();
-render();
+document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===curGran));
+jumpToDiv(curDiv);
 refreshData();
 </script>
 </body>
