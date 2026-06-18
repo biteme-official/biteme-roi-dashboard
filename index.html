@@ -85,9 +85,8 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .qc-cmp-sub{background:#fff;border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:11px;color:var(--text-sub);cursor:pointer}
 .qc-cmp-sub.active{background:rgba(79,70,229,.1);border-color:#4F46E5;color:#4F46E5;font-weight:600}
 .qc-cmp-date{border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;color:var(--text)}
-.qc-layout{display:grid;grid-template-columns:42% 58%;gap:0;align-items:start}
-.qc-left{padding:16px;border-right:1px solid var(--border)}
-.qc-right{padding:16px}
+.qc-layout{display:block}
+.qc-left{padding:16px}
 .qc-alert{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:12px;border:1px solid}
 .qc-alert.danger{background:#FEF2F2;border-color:#FECACA}
 .qc-alert.warning{background:#FFFBEB;border-color:#FDE68A}
@@ -123,12 +122,12 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .qc-dt-wrap{margin-top:6px;overflow-x:auto}
 .qc-dt-hdr{font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .qc-dt-tag{font-size:9px;font-weight:400;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1px 6px;color:var(--text-sub)}
-.qc-dt{width:100%;border-collapse:collapse;font-size:10px}
-.qc-dt th{font-size:8.5px;font-weight:600;color:var(--text-sub);padding:2px 3px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.qc-dt{width:100%;border-collapse:collapse;font-size:12.5px}
+.qc-dt th{font-size:10.5px;font-weight:600;color:var(--text-sub);padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
 .qc-dt th:first-child{text-align:left}
-.qc-dt td{padding:3px 3px;border-bottom:1px solid rgba(0,0,0,.04);white-space:nowrap;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
-.qc-dt td.lbl{text-align:left;color:var(--text);font-size:9.5px}
-.qc-dt td.rat{color:var(--text-sub);font-size:9px}
+.qc-dt td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.04);white-space:nowrap;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.qc-dt td.lbl{text-align:left;color:var(--text);font-size:12px}
+.qc-dt td.rat{color:var(--text-sub);font-size:11px}
 .qc-dt tr.r-ns>td{font-weight:600;border-bottom:1px solid rgba(0,0,0,.12)}
 .qc-dt tr.r-cm>td{font-weight:700;border-top:1px solid var(--border);background:rgba(79,70,229,.04)}
 .qc-dt-neg,.qc-dt-pos{color:var(--text)}
@@ -417,6 +416,22 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div id="b2bGradeDetailSection" style="display:none"></div>
 <div id="ssfwGonguDetailSection" style="display:none"></div>
 <div id="compiraGonguDetailSection" style="display:none"></div>
+<div class="section">
+  <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
+  <div class="chart-grid">
+    <div class="chart-card full"><h4>매출 · 공헌이익 · ROI 추이</h4><div class="cs" id="trendSub">-</div><div class="chart-container tall"><canvas id="chartTrend"></canvas></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head"><div class="section-num">2</div><div class="section-title">수익 구조</div><span class="section-badge">Unit Economics</span></div>
+  <div class="chart-grid"><div class="chart-card full"><h4>거래액 100원 수익 구조</h4><div class="cs" id="wfSub">최근 기간 기준</div><div class="chart-container tall"><canvas id="chartWaterfall"></canvas></div></div></div>
+</div>
+
+<div class="section" id="secChannel" style="display:none">
+  <div class="section-head"><div class="section-num">3</div><div class="section-title">채널별 공헌이익</div><span class="section-badge">Channel</span></div>
+  <div class="chart-grid"><div class="chart-card full"><h4>채널구분별 공헌이익</h4><div class="cs">월간 스택</div><div class="chart-container tall"><canvas id="chartCh"></canvas></div></div></div>
+</div>
 
 <div class="qc-wrap" id="qcSection" style="display:none">
   <div class="qc-header" onclick="toggleQCSection()">
@@ -434,26 +449,8 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <div class="qc-compare-bar" id="qcCompareBar"></div>
     <div class="qc-layout">
       <div class="qc-left" id="qcContent"></div>
-      <div class="qc-right" id="qcCharts"></div>
     </div>
   </div>
-</div>
-
-<div class="section">
-  <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
-  <div class="chart-grid">
-    <div class="chart-card full"><h4>매출 · 공헌이익 · ROI 추이</h4><div class="cs" id="trendSub">-</div><div class="chart-container tall"><canvas id="chartTrend"></canvas></div></div>
-  </div>
-</div>
-
-<div class="section">
-  <div class="section-head"><div class="section-num">2</div><div class="section-title">수익 구조</div><span class="section-badge">Unit Economics</span></div>
-  <div class="chart-grid"><div class="chart-card full"><h4>거래액 100원 수익 구조</h4><div class="cs" id="wfSub">최근 기간 기준</div><div class="chart-container tall"><canvas id="chartWaterfall"></canvas></div></div></div>
-</div>
-
-<div class="section" id="secChannel" style="display:none">
-  <div class="section-head"><div class="section-num">3</div><div class="section-title">채널별 공헌이익</div><span class="section-badge">Channel</span></div>
-  <div class="chart-grid"><div class="chart-card full"><h4>채널구분별 공헌이익</h4><div class="cs">월간 스택</div><div class="chart-container tall"><canvas id="chartCh"></canvas></div></div></div>
 </div>
 
 <div id="adminPanel">
