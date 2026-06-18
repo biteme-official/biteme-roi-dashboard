@@ -879,8 +879,11 @@ function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKe
   const g=curGran==='WD'?'W':curGran;
   const gonguLvl=gonguVD?gonguVD[g]||{}:{};
   const parentLvl=parentVD[g]||{};
-  let periods=Object.keys(parentLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
-  if(curGran==='D'&&selMonths.size>0) periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
+  let periods=[];
+  if(curGran!=='WD'){
+    periods=Object.keys(parentLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(curGran==='D'&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
+  }
 
   const gCM=gr=>{
     return (gr['순매출']||0)-(gr['원가총액']||0)-(gr['공구수수료(최종)']||0)-(gr['채널수수료(최종)']||0)-(gr['물류비 비중(최종)']||0);
@@ -926,11 +929,12 @@ function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKe
     const s=Math.round(v).toLocaleString('ko-KR');
     return v<0?`<span class="val-neg">${s}</span>`:s;
   };
-  let tbody='';
-  for(const p of periods){
-    const ssRow=parentLvl[p]||{};
-    const gonguRow=gonguLvl[p]||{};
-    tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
+  const buildRow=(label,ssRow,gonguRow,opts)=>{
+    opts=opts||{};
+    const trCls=opts.summary?' class="week-summary"':'';
+    const tdStyle=opts.indent?' style="padding-left:24px;font-weight:400;color:var(--text-sub)"':'';
+    const cellStyle=opts.indent?' style="font-weight:400"':'';
+    let r=`<tr${trCls}><td${tdStyle}>${label}</td>`;
     const _gonguVal=(m)=>{
       const isGongu=m.src==='gongu'||m.src==='both';
       let val;
@@ -943,9 +947,26 @@ function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKe
       else{const src=m.src==='gongu'?gonguRow:ssRow;val=m.ratio||COMPUTED[m.key]?rv(src,m.key):gv(src,m.key);if(isGongu&&val==null)val=0;}
       return{val,isGongu};
     };
-    COMMON.forEach(m=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}">${fmtV(val,m.ratio,isGongu)}</td>`;});
-    GONGU.forEach((m,i)=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}${i===0?' grp-left-gongu':''}">${fmtV(val,m.ratio,isGongu)}</td>`;});
-    tbody+='</tr>';
+    COMMON.forEach(m=>{const{val,isGongu}=_gonguVal(m);r+=`<td class="${gonguCls(m)}"${cellStyle}>${fmtV(val,m.ratio,isGongu)}</td>`;});
+    GONGU.forEach((m,i)=>{const{val,isGongu}=_gonguVal(m);r+=`<td class="${gonguCls(m)}${i===0?' grp-left-gongu':''}"${cellStyle}>${fmtV(val,m.ratio,isGongu)}</td>`;});
+    r+='</tr>';
+    return r;
+  };
+  let tbody='';
+  if(curGran==='WD'){
+    const gonguDLvl=gonguVD?gonguVD['D']||{}:{};
+    const parentDLvl=parentVD['D']||{};
+    let dayPeriods=Object.keys(parentDLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(selMonths.size>0)dayPeriods=dayPeriods.filter(p=>selMonths.has(p.substring(0,7)));
+    let weekGroups=[];let curWeek=null,curGroup=[];
+    dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
+    if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
+    weekGroups.forEach(wg=>{
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',parentLvl[wg.week]||{},gonguLvl[wg.week]||{},{summary:true});
+      wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),parentDLvl[d]||{},gonguDLvl[d]||{},{indent:true});});
+    });
+  }else{
+    for(const p of periods){tbody+=buildRow(periodLabel(p,g),parentLvl[p]||{},gonguLvl[p]||{});}
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>공구 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
   sec.style.display='block';
