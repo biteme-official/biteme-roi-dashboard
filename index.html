@@ -1737,6 +1737,7 @@ function toggleRowHL(el){
 
 function navClick(level,d){
   curDiv=d;
+  selMonths.clear();
   if(level===0){
     document.querySelectorAll('#navL1 .div-tab').forEach(t=>t.classList.toggle('active',t.dataset.div===d));
     let l2=L2_MAP[d];
