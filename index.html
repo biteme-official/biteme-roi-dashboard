@@ -316,12 +316,16 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <button id="deliveryToggleBtn" class="toggle-btn delivery-toggle-btn" onclick="toggleDeliveryDetail()">N배송 vs 일반배송 상세 펼치기</button>
     <button id="gonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleGonguDetail()">공구 상세 펼치기</button>
     <button id="b2bGradeToggleBtn" class="toggle-btn b2b-grade-toggle-btn" onclick="toggleB2bGradeDetail()" style="display:none">고객 등급별 비교 상세 펼치기 ▼</button>
+    <button id="ssfwGonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleSsfwGonguDetail()" style="display:none">공구 상세 펼치기 ▼</button>
+    <button id="compiraGonguToggleBtn" class="toggle-btn gongu-toggle-btn" onclick="toggleCompiraGonguDetail()" style="display:none">공구 상세 펼치기 ▼</button>
   </div>
 </div>
 
 <div id="deliveryDetailSection" style="display:none"></div>
 <div id="gonguDetailSection" style="display:none"></div>
 <div id="b2bGradeDetailSection" style="display:none"></div>
+<div id="ssfwGonguDetailSection" style="display:none"></div>
+<div id="compiraGonguDetailSection" style="display:none"></div>
 
 <div class="section">
   <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
@@ -397,7 +401,6 @@ const MEASURES = [
   {key:'PG성 비중',label:'PG성 비중',row:'',ratio:true,core:true},
   {key:'공헌이익',label:'공헌이익',row:'row-cm',core:true},
   {key:'ROI',label:'ROI',row:'',ratio:true,core:true},
-  {key:'주문건수',label:'주문건수',row:''},
   {key:'스스_도착보장 비중',label:'도착보장 비중',row:'',ratio:true},
   {key:'스스_N배송 주문건수',label:'주문건수',row:''},
   {key:'도착보장비용',label:'비용',row:''},
@@ -414,12 +417,10 @@ const MEASURES = [
   {key:'일반배송 원가',label:'원가',row:''},
   {key:'스스_일반배송 공헌이익',label:'공헌이익',row:''},
   {key:'스스_일반배송 ROI',label:'ROI',row:'',ratio:true},
-  {key:'스스_일반배송 주문단가',label:'주문단가',row:''},
-  {key:'스스_마케팅',label:'스스 마케팅',row:''},
-  {key:'스스_마케팅 비중',label:'스스 마케팅%',row:'',ratio:true}
+  {key:'스스_일반배송 주문단가',label:'주문단가',row:''}
 ];
 
-const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)'],'Avg. dau':['Avg. dau','dau']};
+const ALIASES = {'공헌이익':['공헌이익','공헌이익(최종)(세분화)'],'ROI':['ROI','ROI(최종)(세분화)'],'Avg. dau':['Avg. dau','dau'],'운반비성 변동비':['운반비성 변동비','운반비성 변동비(세분화)'],'마케팅성 변동비':['마케팅성 변동비','마케팅성 변동비(세분화)']};
 const RATIO_NUMER = {'매출원가율':'매출원가','마케팅비중':'마케팅비용','운반비성 비중':'운반비성 변동비','마케팅성 비중':'마케팅성 변동비','PG성 비중':'PG수수료성 변동비','ROI':'공헌이익','스스_마케팅 비중':'스스_마케팅'};
 const COMPUTED = {
   'CVR':    obj=>{const b=gv(obj,'구매자수'),d=gv(obj,'Avg. dau');return b!=null&&d?b/d*100:null;},
@@ -460,6 +461,8 @@ let curDiv='grand_total', selYears=new Set(['2026']), curGran='M', selMonths=new
 let showDeliveryDetail=false;
 let showGonguDetail=false;
 let showB2bGradeDetail=false;
+let showSsfwGonguDetail=false;
+let showCompiraGonguDetail=false;
 const promoMemos = JSON.parse(localStorage.getItem('biteme_promo_memos')||'{}');
 function savePromo(weekKey,val){promoMemos[curDiv+'_'+weekKey]=val;localStorage.setItem('biteme_promo_memos',JSON.stringify(promoMemos));}
 function getPromo(weekKey){return promoMemos[curDiv+'_'+weekKey]||'';}
@@ -578,6 +581,7 @@ function renderDeliveryDetail(){
     {key:'스스_일반배송 주문단가',label:'주문단가'},
   ];
   const detailCls=m=>{
+    if(['주문건수','스스_N배송 주문건수','스스_일반배송 주문건수'].includes(m.key))return 'col-narrow';
     if(m.key==='순매출'||m.key==='N배송 순매출'||m.key==='일반배송 순매출')return 'col-ns';
     if(['공헌이익','스스_N배송 공헌이익','스스_일반배송 공헌이익'].includes(m.key))return 'col-cm';
     if(m.ratio)return 'col-pct';
@@ -630,19 +634,23 @@ function renderPNL(){
   // Filter measures that have data
   const BRAND_NO_SS=['brand_total','coupang','etc'];
   const DELIVERY_KEYS=['스스_N배송 주문건수','도착보장비용','N배송 거래액','N배송 순매출','N배송 원가','스스_N배송 공헌이익','스스_N배송 ROI','스스_N배송 주문단가','스스_일반배송 주문건수','일반배송비용','일반배송 거래액','일반배송 순매출','일반배송 원가','스스_일반배송 공헌이익','스스_일반배송 ROI','스스_일반배송 주문단가'];
-  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(m.key==='주문건수'&&(curDiv==='ss_total'||curDiv==='b2b'))return false;if(DELIVERY_KEYS.includes(m.key))return false;if((m.key==='스스_마케팅'||m.key==='스스_마케팅 비중')&&curDiv==='ss_total')return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
+  let avail=MEASURES.filter(m=>{if(m.key==='Avg. dau'&&curDiv.startsWith('pf_'))return false;if(m.key==='CVR'&&curDiv.startsWith('pf_'))return false;if(m.key==='구매자수'&&curDiv==='pf_서비스')return false;if((m.key==='매출원가'||m.key==='매출원가율')&&curDiv==='pf_수수료')return false;if((m.key==='위수탁부담금'||m.key==='위수탁 비중')&&curDiv!=='pf_수수료')return false;if((m.key==='마케팅비용'||m.key==='마케팅비중')&&curDiv==='pf_상품')return false;if((m.key==='운반비성 변동비'||m.key==='운반비성 비중')&&curDiv==='pf_수수료')return false;if(['Avg. dau','구매자수','CVR','객단가'].includes(m.key)&&BRAND_NO_SS.includes(curDiv))return false;if(m.key==='스스_도착보장 비중')return false;if(DELIVERY_KEYS.includes(m.key))return false;return periods.some(p=>(m.ratio||COMPUTED[m.key]?rv(lvl[p],m.key):gv(lvl[p],m.key))!=null);});
 
   // Toggle button visibility
   const dwrap=document.getElementById('deliveryToggleWrap');
   if(dwrap){
-    const isss=curDiv==='ss_total', isb2b=curDiv==='b2b';
-    dwrap.style.display=(isss||isb2b)?'flex':'none';
+    const isss=curDiv==='ss_total', isb2b=curDiv==='b2b', isssfw=curDiv==='ssfw', iscompira=curDiv==='compira';
+    dwrap.style.display=(isss||isb2b||isssfw||iscompira)?'flex':'none';
     const dbtn=document.getElementById('deliveryToggleBtn');
     if(dbtn){dbtn.style.display=isss?'':'none';dbtn.textContent=showDeliveryDetail?'N배송 vs 일반배송 상세 접기 ▲':'N배송 vs 일반배송 상세 펼치기 ▼';dbtn.classList.toggle('active',showDeliveryDetail);}
     const gbtn=document.getElementById('gonguToggleBtn');
     if(gbtn){gbtn.style.display=isss?'':'none';gbtn.textContent=showGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';gbtn.classList.toggle('active',showGonguDetail);}
     const gbtn2=document.getElementById('b2bGradeToggleBtn');
     if(gbtn2){gbtn2.style.display=isb2b?'':'none';gbtn2.textContent=showB2bGradeDetail?'고객 등급별 비교 상세 접기 ▲':'고객 등급별 비교 상세 펼치기 ▼';gbtn2.classList.toggle('active',showB2bGradeDetail);}
+    const sgbtn=document.getElementById('ssfwGonguToggleBtn');
+    if(sgbtn){sgbtn.style.display=isssfw?'':'none';sgbtn.textContent=showSsfwGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';sgbtn.classList.toggle('active',showSsfwGonguDetail);}
+    const cgbtn=document.getElementById('compiraGonguToggleBtn');
+    if(cgbtn){cgbtn.style.display=iscompira?'':'none';cgbtn.textContent=showCompiraGonguDetail?'공구 상세 접기 ▲':'공구 상세 펼치기 ▼';cgbtn.classList.toggle('active',showCompiraGonguDetail);}
   }
 
   // Header
@@ -724,7 +732,7 @@ function renderPNL(){
           let s=0;
           for(let[ds,dm] of Object.entries(vd.D)){
             let hit=curGran==='W'?isoWeekKey(ds)===p:ds.substring(0,7)===p;
-            if(hit&&dm['Avg. dau']!=null)s+=dm['Avg. dau'];
+            if(hit){const dv=gv(dm,'Avg. dau');if(dv!=null)s+=dv;}
           }
           val=s||null;
         } else {
@@ -757,6 +765,8 @@ function renderPNL(){
   renderDeliveryDetail();
   renderGonguDetail();
   renderB2bGradeDetail();
+  renderSsfwGonguDetail();
+  renderCompiraGonguDetail();
 }
 
 function toggleB2bGradeDetail(){
@@ -850,19 +860,30 @@ function toggleGonguDetail(){
   showGonguDetail=!showGonguDetail;
   renderPNL();
 }
+function toggleSsfwGonguDetail(){
+  showSsfwGonguDetail=!showSsfwGonguDetail;
+  renderPNL();
+}
+function toggleCompiraGonguDetail(){
+  showCompiraGonguDetail=!showCompiraGonguDetail;
+  renderPNL();
+}
 
-function renderGonguDetail(){
-  const sec=document.getElementById('gonguDetailSection');
+function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKey}){
+  const sec=document.getElementById(sectionId);
   if(!sec)return;
-  if(!showGonguDetail||curDiv!=='ss_total'){sec.style.display='none';return;}
-  const gonguVD=D.views['ss_gongu'];
-  if(!gonguVD){sec.style.display='none';return;}
-  const ssVD=getVD();
+  if(!show||curDiv!==divCheck){sec.style.display='none';return;}
+  const gonguVD=D.views[gonguKey];
+  const parentVD=D.views[parentDivKey];
+  if(!parentVD){sec.style.display='none';return;}
   const g=curGran==='WD'?'W':curGran;
-  const gonguLvl=gonguVD[g]||{};
-  const ssLvl=ssVD?ssVD[g]||{}:{};
-  // ss_total 기간 기준으로 표시 (공구 데이터 없는 날도 0으로 노출)
-  const periods=Object.keys(ssLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+  const gonguLvl=gonguVD?gonguVD[g]||{}:{};
+  const parentLvl=parentVD[g]||{};
+  let periods=[];
+  if(curGran!=='WD'){
+    periods=Object.keys(parentLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(curGran==='D'&&selMonths.size>0)periods=periods.filter(p=>selMonths.has(p.substring(0,7)));
+  }
 
   const gCM=gr=>{
     return (gr['순매출']||0)-(gr['원가총액']||0)-(gr['공구수수료(최종)']||0)-(gr['채널수수료(최종)']||0)-(gr['물류비 비중(최종)']||0);
@@ -892,6 +913,7 @@ function renderGonguDetail(){
     {key:'_mkt_pct',label:'비중(%)',src:'ss',isMktPct:true,ratio:true},
   ];
   const gonguCls=m=>{
+    if(m.key==='주문건수')return 'col-narrow';
     if(m.key==='순매출')return 'col-ns';
     if(m.key==='공헌이익'||m.isCm)return 'col-cm';
     if(m.ratio)return 'col-pct';
@@ -907,11 +929,12 @@ function renderGonguDetail(){
     const s=Math.round(v).toLocaleString('ko-KR');
     return v<0?`<span class="val-neg">${s}</span>`:s;
   };
-  let tbody='';
-  for(const p of periods){
-    const ssRow=ssLvl[p]||{};
-    const gonguRow=gonguLvl[p]||{};
-    tbody+=`<tr><td>${periodLabel(p,g)}</td>`;
+  const buildRow=(label,ssRow,gonguRow,opts)=>{
+    opts=opts||{};
+    const trCls=opts.summary?' class="week-summary"':'';
+    const tdStyle=opts.indent?' style="padding-left:24px;font-weight:400;color:var(--text-sub)"':'';
+    const cellStyle=opts.indent?' style="font-weight:400"':'';
+    let r=`<tr${trCls}><td${tdStyle}>${label}</td>`;
     const _gonguVal=(m)=>{
       const isGongu=m.src==='gongu'||m.src==='both';
       let val;
@@ -924,12 +947,39 @@ function renderGonguDetail(){
       else{const src=m.src==='gongu'?gonguRow:ssRow;val=m.ratio||COMPUTED[m.key]?rv(src,m.key):gv(src,m.key);if(isGongu&&val==null)val=0;}
       return{val,isGongu};
     };
-    COMMON.forEach(m=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}">${fmtV(val,m.ratio,isGongu)}</td>`;});
-    GONGU.forEach((m,i)=>{const{val,isGongu}=_gonguVal(m);tbody+=`<td class="${gonguCls(m)}${i===0?' grp-left-gongu':''}">${fmtV(val,m.ratio,isGongu)}</td>`;});
-    tbody+='</tr>';
+    COMMON.forEach(m=>{const{val,isGongu}=_gonguVal(m);r+=`<td class="${gonguCls(m)}"${cellStyle}>${fmtV(val,m.ratio,isGongu)}</td>`;});
+    GONGU.forEach((m,i)=>{const{val,isGongu}=_gonguVal(m);r+=`<td class="${gonguCls(m)}${i===0?' grp-left-gongu':''}"${cellStyle}>${fmtV(val,m.ratio,isGongu)}</td>`;});
+    r+='</tr>';
+    return r;
+  };
+  let tbody='';
+  if(curGran==='WD'){
+    const gonguDLvl=gonguVD?gonguVD['D']||{}:{};
+    const parentDLvl=parentVD['D']||{};
+    let dayPeriods=Object.keys(parentDLvl).filter(k=>selYears.has(yearOfKey(k))).sort();
+    if(selMonths.size>0)dayPeriods=dayPeriods.filter(p=>selMonths.has(p.substring(0,7)));
+    let weekGroups=[];let curWeek=null,curGroup=[];
+    dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
+    if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
+    weekGroups.forEach(wg=>{
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',parentLvl[wg.week]||{},gonguLvl[wg.week]||{},{summary:true});
+      wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),parentDLvl[d]||{},gonguDLvl[d]||{},{indent:true});});
+    });
+  }else{
+    for(const p of periods){tbody+=buildRow(periodLabel(p,g),parentLvl[p]||{},gonguLvl[p]||{});}
   }
   sec.innerHTML=`<div class="table-wrap"><div class="table-header"><h3>공구 상세</h3></div><div class="table-scroll"><table class="data"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div>`;
   sec.style.display='block';
+}
+
+function renderGonguDetail(){
+  _renderGonguDetailGeneric({show:showGonguDetail,divCheck:'ss_total',sectionId:'gonguDetailSection',gonguKey:'ss_gongu',parentDivKey:'ss_total'});
+}
+function renderSsfwGonguDetail(){
+  _renderGonguDetailGeneric({show:showSsfwGonguDetail,divCheck:'ssfw',sectionId:'ssfwGonguDetailSection',gonguKey:'ssfw_gongu',parentDivKey:'ssfw'});
+}
+function renderCompiraGonguDetail(){
+  _renderGonguDetailGeneric({show:showCompiraGonguDetail,divCheck:'compira',sectionId:'compiraGonguDetailSection',gonguKey:'compira_gongu',parentDivKey:'compira'});
 }
 
 function renderChannelWD(ch,periods,lvl,channels){
