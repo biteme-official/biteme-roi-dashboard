@@ -1008,7 +1008,13 @@ function renderQCReview(){
       prevP=qcCustomPrevP[g];
     }
   }
-  const prevPHasData=Object.prototype.hasOwnProperty.call(grandVD[g]||{},prevP);
+  // 전사(grandVD)는 데이터가 있어도 지금 보고 있는 화면(sub-view)엔 비교기간 데이터가 없을 수 있어, 화면 기준으로 체크
+  const qcDataCheckLvl=qcLevel();
+  const qcDataCheckVD={
+    total:grandVD, platform:D.views['platform'], platform_sub:D.views[curDiv],
+    brand:D.views['brand_total'], brand_sub:D.views[curDiv], overseas:D.views['overseas'],
+  }[qcDataCheckLvl]||grandVD;
+  const prevPHasData=Object.prototype.hasOwnProperty.call((qcDataCheckVD||{})[g]||{},prevP);
   const granLabel={'Y':'당년','M':'당월','W':'금주','D':'금일'}[g]||'당기';
   if(periodLbl)periodLbl.textContent=prevPHasData?`${curP} vs ${prevP}`:`${curP} vs ${prevP} (데이터 없음)`;
   sec.style.display='block';
