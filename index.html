@@ -91,10 +91,12 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .qc-alert.danger{background:#FEF2F2;border-color:#FECACA}
 .qc-alert.warning{background:#FFFBEB;border-color:#FDE68A}
 .qc-alert.good{background:#F0FDF4;border-color:#BBF7D0}
+.qc-alert.neutral{background:#F1F5F9;border-color:#E2E8F0}
 .qc-alert-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .qc-alert.danger .qc-alert-badge{background:#DC2626;color:#fff}
 .qc-alert.warning .qc-alert-badge{background:#D97706;color:#fff}
 .qc-alert.good .qc-alert-badge{background:#16A34A;color:#fff}
+.qc-alert.neutral .qc-alert-badge{background:#64748B;color:#fff}
 .qc-alert-text{font-size:13px;color:var(--text);line-height:1.5}
 .qc-alert-text strong{font-weight:700}
 .qc-interpret{display:flex;align-items:flex-start;gap:10px;background:#F8FAFC;border:1px solid var(--border);border-radius:9px;padding:9px 13px;margin-bottom:12px}
@@ -933,6 +935,7 @@ function toggleQCSection(){
   if(body){body.style.display=showQCSection?'block':'none';}
   if(btn){btn.textContent=showQCSection?'접기 ▲':'펼치기 ▼';}
   if(hdr){hdr.classList.toggle('open',showQCSection);}
+  if(showQCSection)renderQCReview(); // 접힌 동안 본문 렌더링을 건너뛰므로, 펼칠 때 최신 데이터로 다시 그림
 }
 
 function qcLevel(){
@@ -954,7 +957,7 @@ function qcGetPeriods(vd,g){
 }
 function qcGetRow(vd,g,p){if(!vd||!p)return{};return(vd[g]||{})[p]||{};}
 function qcROI(row){return rv(row,'ROI');}
-function qcStatus(d){if(d==null)return'neutral';if(d<=-3)return'danger';if(d<=-1)return'warning';return'good';}
+function qcStatus(d){if(d==null)return'neutral';if(d<=-3)return'danger';if(d<=-1)return'warning';if(d<0)return'neutral';return'good';}
 function qcStatusLabel(d){if(d==null)return'-';if(d<=-3)return'위험';if(d<=-1)return'주의';if(d>=1)return'개선';return'정상';}
 function qcDiffText(d){if(d==null)return'-';return(d>=0?'+':'')+d.toFixed(1)+'%p';}
 
@@ -1019,6 +1022,7 @@ function renderQCReview(){
   if(periodLbl)periodLbl.textContent=prevPHasData?`${curP} vs ${prevP}`:`${curP} vs ${prevP} (데이터 없음)`;
   sec.style.display='block';
   qcRenderCompareBar(g);
+  if(!showQCSection)return; // 접힌 상태에서는 헤더만 갱신하고 무거운 본문 계산은 펼칠 때(toggleQCSection)로 미룸
   if(!prevPHasData){
     const syncNoteLbl=document.getElementById('qcSyncNote');
     if(syncNoteLbl)syncNoteLbl.style.display='none';
@@ -1036,13 +1040,14 @@ function renderQCReview(){
       const r=dl[d];if(!r)return;
       ['거래액','순매출','공헌이익','주문건수','구매자수','Avg. dau'].forEach(k=>{const v=gv(r,k);if(v!=null)a[k]=(a[k]||0)+v;});
       const nsv=gv(r,'순매출');
-      if(nsv&&nsv>0){
+      // 환불 집중일(순매출<=0)도 절대금액 합산(a)에는 포함되므로, 비율 가중평균(cn/ns)의 분모도 동일한 날짜 범위로 맞춰야 absOf() 역산 시 두 컬럼이 일치함
+      if(nsv!=null){
         ['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(rk=>{const rt=rv(r,rk);if(rt!=null)cn[rk]=(cn[rk]||0)+nsv*rt/100;});
         ns+=nsv;
       }
     });
     const row={...a};
-    if(ns>0)['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(rk=>{if(cn[rk]!=null)row[rk]=cn[rk]/ns*100;});
+    if(ns)['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(rk=>{if(cn[rk]!=null)row[rk]=cn[rk]/ns*100;});
     return Object.keys(row).length?row:null;
   };
 
@@ -1072,7 +1077,9 @@ function renderQCReview(){
       const proratePrev=(vd)=>{
         const row=rowOf(vd,prevP);if(!row)return null;
         const pr={};
-        ['거래액','순매출','공헌이익','주문건수','구매자수','Avg. dau'].forEach(k=>{const v=gv(row,k);if(v!=null)pr[k]=Math.round(v/daysInPrev*maxDay);});
+        // Avg. dau는 누적합이 아니라 일평균이라 일수 비례식을 적용하면 안 됨 — 원값 그대로 사용
+        ['거래액','순매출','공헌이익','주문건수','구매자수'].forEach(k=>{const v=gv(row,k);if(v!=null)pr[k]=Math.round(v/daysInPrev*maxDay);});
+        const dau=gv(row,'Avg. dau');if(dau!=null)pr['Avg. dau']=dau;
         ['매출원가율','마케팅성 비중','운반비성 비중','PG성 비중'].forEach(k=>{const v=rv(row,k);if(v!=null)pr[k]=v;});
         return Object.keys(pr).length?pr:row;
       };
@@ -1139,7 +1146,7 @@ function renderQCReview(){
     const rC=syncCurFn(vd),rP=syncPrevFn(vd);
     if(!rC&&!rP)return'';
     const getR=(row,k)=>row&&row[k]!=null?row[k]:rv(row,k);
-    const absOf=(row,ak,rk)=>{if(!row)return null;const d=gv(row,ak);if(d!=null)return d;const ns=gv(row,'순매출');if(!ns)return null;const rvv=rv(row,rk);if(rvv!=null)return Math.round(rvv/100*ns);const rt=row[rk];return(rt!=null&&rt>=0&&rt<=100)?Math.round(rt/100*ns):null;};
+    const absOf=(row,ak,rk)=>{if(!row)return null;const d=gv(row,ak);if(d!=null)return d;const ns=gv(row,'순매출');if(!ns)return null;const rvv=rv(row,rk);if(rvv!=null)return Math.round(rvv/100*ns);const rt=row[rk];return(rt!=null&&rt>=0)?Math.round(rt/100*ns):null;};
     const fmtN=v=>{if(v==null)return'-';return Math.round(v).toLocaleString('ko-KR');};
     const tdDiff=(cur,prev,costDir)=>{
       if(cur==null||prev==null)return'<td class="rat">-</td>';
