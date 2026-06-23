@@ -962,7 +962,8 @@ function qcStatusLabel(d){if(d==null)return'-';if(d<=-3)return'위험';if(d<=-1)
 function qcDiffText(d){if(d==null)return'-';return(d>=0?'+':'')+d.toFixed(1)+'%p';}
 
 function qcInterpret(cmDiffVal, roiDiffVal, prevCMVal){
-  if(cmDiffVal==null&&roiDiffVal==null)return null;
+  // 둘 중 하나라도 없으면 "변동 없음(flat)"이 아니라 데이터 부족이므로 해석을 보류
+  if(cmDiffVal==null||roiDiffVal==null)return null;
   const ROI_THR=0.5;
   const CM_THR_PCT=2;
   const cmPct=prevCMVal&&prevCMVal!==0?cmDiffVal/Math.abs(prevCMVal)*100:null;
@@ -1127,7 +1128,7 @@ function renderQCReview(){
   const fmtCM=(v)=>{
     if(v==null)return null;
     const abs=Math.abs(v);
-    const fmt=abs>=1e8?(v/1e8).toFixed(1)+'억':abs>=1e4?Math.round(v/1e4).toLocaleString('ko-KR')+'만':Math.round(v).toLocaleString('ko-KR');
+    const fmt=abs>=1e8?(abs/1e8).toFixed(1)+'억':abs>=1e4?Math.round(abs/1e4).toLocaleString('ko-KR')+'만':Math.round(abs).toLocaleString('ko-KR');
     return(v>=0?'▲ +':'▼ ')+fmt;
   };
   const cmChip=(cd)=>{if(cd==null)return'';const cls=cd>0?'pos':cd<0?'neg':'flat';return`<span class="qc-chip-cm ${cls}">${fmtCM(cd)}</span>`;};
@@ -1164,7 +1165,7 @@ function renderQCReview(){
       const badge=a>=3?(bad?'🔴':' 🟢'):a>=1?(bad?'🟡':' 🟢'):'';
       const cls=a<0.05?'rat':(bad?'qc-dt-neg':'qc-dt-pos');
       const arrow=`<span class="qc-dt-arrow">${d>=0?'▲':'▼'}</span>`;
-      return`<td class="${cls}">${badge} ${arrow} ${d>=0?'+':''}${d.toFixed(2)}%p</td>`;
+      return`<td class="${cls}">${badge} ${arrow} ${d>=0?'+':''}${a.toFixed(2)}%p</td>`;
     };
     const gaCur=gv(rC,'거래액'),gaPrev=gv(rP,'거래액');
     const nsCur=gv(rC,'순매출'),nsPrev=gv(rP,'순매출');
@@ -1247,7 +1248,7 @@ function renderQCReview(){
       if(cur==null||prev==null||!prev)return'<td class="rat">-</td>';
       const d=isAbsDiff?cur-prev:(cur-prev)/Math.abs(prev)*100;
       const cls=Math.abs(d)<0.05?'rat':(d>0?'qc-dt-pos':'qc-dt-neg');
-      return`<td class="${cls}"><span class="qc-dt-arrow">${d>=0?'▲':'▼'}</span> ${d>=0?'+':''}${d.toFixed(2)}%${isAbsDiff?'p':''}</td>`;
+      return`<td class="${cls}"><span class="qc-dt-arrow">${d>=0?'▲':'▼'}</span> ${d>=0?'+':''}${Math.abs(d).toFixed(2)}%${isAbsDiff?'p':''}</td>`;
     };
     const pCur=gaCur/buyCur,pPrev=gaPrev/buyPrev;
     const dauNotMeaningful=['pf_상품','pf_수수료','pf_제품'].includes(curDiv);
@@ -1302,10 +1303,10 @@ function renderQCReview(){
   const renderItemRows=(items)=>items.map(o=>`
     <div class="qc-row">
       <span class="qc-row-label">${o.label}</span>
-      <span style="display:flex;align-items:center;gap:3px;white-space:nowrap">${o.cmDiff!=null?`<span style="font-size:10px;color:var(--text-sub);font-weight:600">공헌이익</span>${cmChip(o.cmDiff)}`:''}</span>
+      <span style="display:flex;align-items:center;gap:3px;white-space:nowrap">${o.cmDiff!=null?`<span style="font-size:10px;color:var(--text-sub);font-weight:600">공헌이익</span>${cmChip(o.cmDiff)}`:'<span class="qc-chip-cm flat" title="비교 기간 중 한쪽 데이터 부족">-</span>'}</span>
       <span style="display:flex;align-items:center;gap:3px;white-space:nowrap">
         <span style="font-size:10px;color:var(--text-sub);font-weight:500">ROI</span>
-        <span class="qc-chip ${qcStatus(o.roiDiff)}">${qcStatusLabel(o.roiDiff)} ${qcDiffText(o.roiDiff)}</span>
+        <span class="qc-chip ${qcStatus(o.roiDiff)}"${o.roiDiff==null?' title="비교 기간 중 한쪽 데이터 부족"':''}>${qcStatusLabel(o.roiDiff)} ${qcDiffText(o.roiDiff)}</span>
       </span>
     </div>`).join('');
 
@@ -1810,6 +1811,8 @@ function toggleRowHL(el){
 function navClick(level,d){
   curDiv=d;
   selMonths.clear();
+  // 사업부/채널 탭 전환 시 이전 화면의 QC 비교 설정(전년동기/직접입력)이 그대로 적용되면 혼동을 줘 기본값으로 리셋
+  qcCompareMode='preset';qcPresetYoy=false;qcCustomPrevP={M:'',W:'',D:''};
   if(level===0){
     document.querySelectorAll('#navL1 .div-tab').forEach(t=>t.classList.toggle('active',t.dataset.div===d));
     let l2=L2_MAP[d];
