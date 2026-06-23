@@ -1241,7 +1241,9 @@ function renderQCReview(){
     const tdD=(d,unit)=>{
       if(d==null)return'<td class="rat">-</td>';
       const cls=Math.abs(d)<0.05?'rat':(d>0?'qc-dt-pos':'qc-dt-neg');
-      return`<td class="${cls}"><span class="qc-dt-arrow">${d>=0?'▲':'▼'}</span> ${d>=0?'+':''}${typeof d==='number'&&!Number.isInteger(d)?Math.abs(d).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2}):fi(Math.round(Math.abs(d)))}${unit}</td>`;
+      // %p(CVR)만 소수점 2자리 유지, 명/원 등은 항상 정수로 반올림
+      const valStr=unit==='%p'?Math.abs(d).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2}):fi(Math.round(Math.abs(d)));
+      return`<td class="${cls}"><span class="qc-dt-arrow">${d>=0?'▲':'▼'}</span> ${d>=0?'+':''}${valStr}${unit}</td>`;
     };
     // 변동% td: 상대 변동률
     const tdPct=(cur,prev,isAbsDiff)=>{
