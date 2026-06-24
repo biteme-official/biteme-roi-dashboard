@@ -1574,14 +1574,17 @@ function renderB2bGradeDetail(){
 
 function toggleGonguDetail(){
   showGonguDetail=!showGonguDetail;
+  savePersistedState();
   renderPNL();
 }
 function toggleSsfwGonguDetail(){
   showSsfwGonguDetail=!showSsfwGonguDetail;
+  savePersistedState();
   renderPNL();
 }
 function toggleCompiraGonguDetail(){
   showCompiraGonguDetail=!showCompiraGonguDetail;
+  savePersistedState();
   renderPNL();
 }
 
@@ -1855,9 +1858,12 @@ function sparklineSVG(values){
   if(idxVals.length<2)return '';
   const vs=idxVals.map(p=>p.v);
   const min=Math.min(...vs),max=Math.max(...vs);
-  const range=(max-min)||1;
+  const range=max-min;
   const step=values.length>1?w/(values.length-1):0;
-  const pts=idxVals.map(p=>(p.i*step).toFixed(1)+','+(h-((p.v-min)/range)*h).toFixed(1)).join(' ');
+  const pts=idxVals.map(p=>{
+    const y=range?h-((p.v-min)/range)*h:h/2; // 값이 전부 동일하면 바닥(0) 대신 중앙에 평평한 선 표시
+    return (p.i*step).toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
   const up=vs[vs.length-1]>=vs[0];
   const color=up?'#10B981':'#EF4444';
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -1954,10 +1960,17 @@ function renderMonthKPIs(dailyLvl){
           ksHtml=`<span class="${r.cls}">전월 대비 ${r.txt}</span>`;
           if(r.status==='danger')alertCls=' alert-danger';
           else if(r.status==='warning')alertCls=' alert-warning';
-          if(prevYData){
-            const prevVY=ratio?rv(prevYData,key):gv(prevYData,key);
-            const ry=calcKpiStatus(curV,prevVY,ratio,inverse);
-            if(ry)ksHtml+=`<span style="color:var(--text-muted);font-weight:400"> · 전년 동월 ${ry.txt}</span>`;
+        }
+      }
+      if(prevYData){
+        const prevVY=ratio?rv(prevYData,key):gv(prevYData,key);
+        const ry=calcKpiStatus(curV,prevVY,ratio,inverse);
+        if(ry){
+          const sep=ksHtml?' · ':'';
+          ksHtml+=`<span style="color:var(--text-muted);font-weight:400">${sep}전년 동월 ${ry.txt}</span>`;
+          if(!alertCls){
+            if(ry.status==='danger')alertCls=' alert-danger';
+            else if(ry.status==='warning')alertCls=' alert-warning';
           }
         }
       }
@@ -1979,7 +1992,7 @@ function toggleRowHL(el){
 function navClick(level,d,opts){
   opts=opts||{};
   curDiv=d;
-  selMonths.clear();
+  if(!opts.keepMonths)selMonths.clear();
   // 사업부/채널 탭 전환 시 이전 화면의 QC 비교 설정(전년동기/직접입력)이 그대로 적용되면 혼동을 줘 기본값으로 리셋
   qcCompareMode='preset';qcPresetYoy=false;qcCustomPrevP={M:'',W:'',D:''};
   if(level===0){
@@ -2002,8 +2015,10 @@ function navClick(level,d,opts){
     else el.style.display='none';
   }
   if(level===2){document.querySelectorAll('#navL3Items .div-tab').forEach(t=>t.classList.toggle('active',t.dataset.div===d));}
-  updateMonthFilter();
-  render();
+  if(!opts.skipRender){
+    updateMonthFilter();
+    render();
+  }
   if(!opts.skipRecent)recordRecentDiv(d);
 }
 
@@ -2021,11 +2036,15 @@ function navPathFor(div){
   }
   return{l1:'grand_total'};
 }
-function jumpToDiv(div){
+function jumpToDiv(div,opts){
+  opts=opts||{};
   const path=navPathFor(div);
-  navClick(0,path.l1,{skipRecent:true});
-  if(path.l2)navClick(1,path.l2,{skipRecent:true});
-  if(path.l3)navClick(2,path.l3,{skipRecent:true});
+  const steps=[[0,path.l1]];
+  if(path.l2)steps.push([1,path.l2]);
+  if(path.l3)steps.push([2,path.l3]);
+  steps.forEach(([level,d],i)=>{
+    navClick(level,d,{skipRecent:true,keepMonths:opts.keepMonths,skipRender:i<steps.length-1});
+  });
   recordRecentDiv(div);
 }
 
@@ -2042,12 +2061,24 @@ function renderRecentDivs(){
   const wrap=document.getElementById('navRecent');
   if(!wrap)return;
   const list=recentDivs.filter(d=>d!==curDiv).slice(0,5);
-  if(list.length===0){wrap.style.display='none';wrap.innerHTML='';return;}
+  wrap.innerHTML='';
+  if(list.length===0){wrap.style.display='none';return;}
   wrap.style.display='flex';
-  wrap.innerHTML='<span class="nav-recent-label">최근 본</span>'+list.map(d=>`<button class="nav-recent-btn" onclick="jumpToDiv('${d}')">${recentDivLabel(d)}</button>`).join('');
+  const label=document.createElement('span');
+  label.className='nav-recent-label';
+  label.textContent='최근 본';
+  wrap.appendChild(label);
+  list.forEach(d=>{
+    const btn=document.createElement('button');
+    btn.className='nav-recent-btn';
+    btn.textContent=recentDivLabel(d);
+    btn.addEventListener('click',()=>jumpToDiv(d));
+    wrap.appendChild(btn);
+  });
 }
 
 const LS_KEY='biteme_roi_dash_state_v1';
+let persistSaveWarned=false;
 function savePersistedState(){
   try{
     localStorage.setItem(LS_KEY,JSON.stringify({
@@ -2055,7 +2086,9 @@ function savePersistedState(){
       recentDivs,
       filters:{curDiv,curGran,selYears:[...selYears],selMonths:[...selMonths]}
     }));
-  }catch(e){}
+  }catch(e){
+    if(!persistSaveWarned){persistSaveWarned=true;showToast('상태 저장 실패 — 브라우저 저장공간이 가득 찼을 수 있습니다','error',4000);}
+  }
 }
 function loadPersistedState(){
   try{
@@ -2258,14 +2291,21 @@ function renderChannelChart(periods,lvl,channels){
       scales:{x:{stacked:true},y:{stacked:true}}}});
 }
 
+function cellTextNoCopyBtn(c){
+  // cloneNode 없이 row-copy-btn 버튼(📋)만 건너뛰고 직계 자식 텍스트만 합산 — 대형 테이블에서 셀당 DOM 클론 생성 방지
+  let s='';
+  c.childNodes.forEach(n=>{
+    if(n.nodeType===1&&n.classList.contains('row-copy-btn'))return;
+    s+=n.textContent;
+  });
+  return s;
+}
 function exportCSV(){
   let t=document.getElementById('dataTable');
   let csv=[];
   t.querySelectorAll('tr').forEach(r=>{
     let row=[];r.querySelectorAll('th,td').forEach(c=>{
-      const clone=c.cloneNode(true);
-      clone.querySelectorAll('.row-copy-btn').forEach(b=>b.remove());
-      row.push('"'+clone.textContent.replace(/"/g,'""')+'"');
+      row.push('"'+cellTextNoCopyBtn(c).replace(/"/g,'""')+'"');
     });
     csv.push(row.join(','));
   });
@@ -2277,18 +2317,25 @@ function exportCSV(){
 // 행/카드 단위로 슬랙 공유용 한 줄 텍스트 복사 — 전체 CSV 다운로드 없이 핵심 숫자만 빠르게 공유
 function copyToClipboard(text){
   const done=()=>showToast('클립보드에 복사했습니다','success',1800);
-  const fail=()=>showToast('복사 실패 — 직접 선택해서 복사해주세요','error',2200);
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(done).catch(fail);
-  }else{
+  // Clipboard API와 execCommand 둘 다 실패할 수 있는 non-HTTPS 환경을 위한 최종 수단 — 브라우저 네이티브 prompt는 보안 컨텍스트와 무관하게 항상 텍스트 선택/복사가 가능
+  const manualFallback=()=>{
+    showToast('자동 복사 실패 — 표시된 텍스트를 직접 복사해주세요','error',2500);
+    window.prompt('아래 텍스트를 Ctrl+C로 복사하세요:',text);
+  };
+  const execFallback=()=>{
     try{
       const ta=document.createElement('textarea');
       ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
       document.body.appendChild(ta);ta.select();
-      document.execCommand('copy');
+      const ok=document.execCommand('copy');
       document.body.removeChild(ta);
-      done();
-    }catch(e){fail();}
+      if(ok)done();else manualFallback();
+    }catch(e){manualFallback();}
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(execFallback);
+  }else{
+    execFallback();
   }
 }
 function copyKpiSummary(btn){
@@ -2744,7 +2791,7 @@ async function refreshData(){
     let cutoff=D.cutoff||'';
     document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
     initYears();
-    if(isAdmin){initAdminDates();}else{render();}
+    if(isAdmin){initAdminDates();}else{updateMonthFilter();render();}
     showToast('데이터 갱신 완료 (~'+cutoff+')','success',3000);
   }catch(e){
     console.error('Refresh error:',e);
@@ -2756,7 +2803,7 @@ async function refreshData(){
 loadPersistedState();
 initYears();
 document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===curGran));
-jumpToDiv(curDiv);
+jumpToDiv(curDiv,{keepMonths:true});
 refreshData();
 </script>
 </body>
