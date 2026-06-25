@@ -2104,7 +2104,8 @@ function loadPersistedState(){
     }
     if(Array.isArray(s.recentDivs))recentDivs=s.recentDivs;
     if(s.filters){
-      if(s.filters.curDiv)curDiv=s.filters.curDiv;
+      // 삭제/변경된 view 키가 남아있으면 grand_total 데이터에 잘못된 헤더가 표시되므로, 존재하는 div일 때만 복원
+      if(s.filters.curDiv&&(s.filters.curDiv==='etc_channel'||D.views[s.filters.curDiv]))curDiv=s.filters.curDiv;
       if(s.filters.curGran)curGran=s.filters.curGran;
       if(Array.isArray(s.filters.selYears)&&s.filters.selYears.length)selYears=new Set(s.filters.selYears);
       if(Array.isArray(s.filters.selMonths))selMonths=new Set(s.filters.selMonths);
@@ -2140,8 +2141,12 @@ function applyPreset(preset){
   let targetGran,targetYear,targetPeriodKey;
   if(preset==='yesterday'){
     targetGran='D';
-    targetYear=String(cy);
-    targetPeriodKey=cutoff;
+    // cutoff는 '최신 데이터 일자'일 뿐 실제 어제와 다를 수 있음(예: 당일 데이터까지 들어온 경우) — 실제 어제 날짜를 우선 쓰고, 데이터가 아직 없으면 cutoff로 대체
+    const now=new Date();
+    const yd=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
+    const yds=yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0');
+    targetPeriodKey=(yds<=cutoff)?yds:cutoff;
+    targetYear=targetPeriodKey.substring(0,4);
   }else if(preset==='thisWeek'||preset==='lastWeek'){
     targetGran='W';
     let dt=new Date(cy,cm-1,cd);
