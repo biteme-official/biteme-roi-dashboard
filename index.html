@@ -66,12 +66,6 @@ body{font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-seri
 .kpi-primary .kl{font-size:11px;font-weight:700;color:var(--text)}
 .kpi-primary .kv{font-size:27px}
 .kpi-primary .ks{font-size:11px;font-weight:600}
-.kpi-copy-btn{position:absolute;top:6px;right:6px;width:20px;height:20px;border:none;background:transparent;cursor:pointer;font-size:11px;opacity:.3;border-radius:4px;padding:0;line-height:20px}
-.kpi-copy-btn:hover{opacity:1;background:rgba(0,0,0,.06)}
-.row-copy-btn{border:none;background:transparent;cursor:pointer;font-size:10px;opacity:.25;padding:0 0 0 6px;vertical-align:middle}
-.row-copy-btn:hover{opacity:1}
-tr:hover .row-copy-btn{opacity:.6}
-tr:hover .row-copy-btn:hover{opacity:1}
 .kpi.alert-danger{border-color:var(--red);background:#FEF2F2}
 .kpi.alert-danger::before{background:var(--red)}
 .kpi-spark-wrap{position:absolute;bottom:8px;right:8px;width:46px;height:18px;opacity:.8}
@@ -427,12 +421,12 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div class="kpi-section">
 <div class="kpi-total-label" id="kpiTotalLabel">전체 TOTAL</div>
 <div class="kpi-row">
-  <div class="kpi c-blue"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div><span class="kpi-spark-wrap" id="k-g-spark"></span></div>
-  <div class="kpi c-green"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">순매출</div><div class="kv" id="k-n">-</div><div class="ks" id="k-n-c"></div><span class="kpi-spark-wrap" id="k-n-spark"></span></div>
-  <div class="kpi c-orange"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">매출원가</div><div class="kv" id="k-c">-</div><div class="ks" id="k-c-c"></div><span class="kpi-spark-wrap" id="k-c-spark"></span></div>
-  <div class="kpi kpi-primary c-purple"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">공헌이익</div><div class="kv" id="k-cm">-</div><div class="ks" id="k-cm-c"></div><span class="kpi-spark-wrap" id="k-cm-spark"></span></div>
-  <div class="kpi kpi-primary c-amber"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">ROI</div><div class="kv" id="k-r">-</div><div class="ks" id="k-r-c"></div><span class="kpi-spark-wrap" id="k-r-spark"></span></div>
-  <div class="kpi c-red"><button class="kpi-copy-btn" onclick="copyKpiSummary(this)" title="복사">📋</button><div class="kl">주문건수</div><div class="kv" id="k-o">-</div><div class="ks" id="k-o-c"></div><span class="kpi-spark-wrap" id="k-o-spark"></span></div>
+  <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div><span class="kpi-spark-wrap" id="k-g-spark"></span></div>
+  <div class="kpi c-green"><div class="kl">순매출</div><div class="kv" id="k-n">-</div><div class="ks" id="k-n-c"></div><span class="kpi-spark-wrap" id="k-n-spark"></span></div>
+  <div class="kpi c-orange"><div class="kl">매출원가</div><div class="kv" id="k-c">-</div><div class="ks" id="k-c-c"></div><span class="kpi-spark-wrap" id="k-c-spark"></span></div>
+  <div class="kpi kpi-primary c-purple"><div class="kl">공헌이익</div><div class="kv" id="k-cm">-</div><div class="ks" id="k-cm-c"></div><span class="kpi-spark-wrap" id="k-cm-spark"></span></div>
+  <div class="kpi kpi-primary c-amber"><div class="kl">ROI</div><div class="kv" id="k-r">-</div><div class="ks" id="k-r-c"></div><span class="kpi-spark-wrap" id="k-r-spark"></span></div>
+  <div class="kpi c-red"><div class="kl">주문건수</div><div class="kv" id="k-o">-</div><div class="ks" id="k-o-c"></div><span class="kpi-spark-wrap" id="k-o-spark"></span></div>
 </div>
 <div id="monthKpiContainer"></div>
 </div>
@@ -865,7 +859,7 @@ function renderPNL(){
       let weekLabel=periodLabel(g.week,'W');
       let promoVal=getPromo(g.week);
       let promoHtml=`<td><input class="promo-input" type="text" placeholder="프로모션명" value="${promoVal.replace(/"/g,'&quot;')}" onchange="savePromo('${g.week}',this.value)"></td>`;
-      html+=`<tr class="week-summary ${yrSep}"><td><span class="week-label">📅 ${weekLabel} 합산</span><button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td>${promoHtml}`;
+      html+=`<tr class="week-summary ${yrSep}"><td><span class="week-label">📅 ${weekLabel} 합산</span></td>${promoHtml}`;
       avail.forEach(m=>{
         let cls=measureCls(m);
         if(wData){
@@ -886,7 +880,7 @@ function renderPNL(){
 
       // Daily rows
       g.days.forEach(d=>{
-        html+=`<tr><td style="padding-left:24px;font-weight:400;color:var(--text-sub)">${periodLabel(d,'D')}<button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td><td></td>`;
+        html+=`<tr><td style="padding-left:24px;font-weight:400;color:var(--text-sub)">${periodLabel(d,'D')}</td><td></td>`;
         avail.forEach(m=>{
           let cls=measureCls(m);
           html+=`<td class="${cls}" style="font-weight:400">${fmtCell(m.ratio?rv(lvl[d],m.key):gv(lvl[d],m.key),m.ratio)}</td>`;
@@ -899,7 +893,7 @@ function renderPNL(){
       let yr=yearOfKey(p);
       let yrSep=(yr!==prevYear&&prevYear!=='')?'yr-sep':'';
       prevYear=yr;
-      html+=`<tr class="${yrSep}" data-period="${p}"><td>${periodLabel(p,curGran)}<button class="row-copy-btn" onclick="copyRowSummary(this)" title="복사">📋</button></td>`;
+      html+=`<tr class="${yrSep}" data-period="${p}"><td>${periodLabel(p,curGran)}</td>`;
       avail.forEach(m=>{
         let cls=measureCls(m);
         let val;
@@ -2296,80 +2290,16 @@ function renderChannelChart(periods,lvl,channels){
       scales:{x:{stacked:true},y:{stacked:true}}}});
 }
 
-function cellTextNoCopyBtn(c){
-  // cloneNode 없이 row-copy-btn 버튼(📋)만 건너뛰고 직계 자식 텍스트만 합산 — 대형 테이블에서 셀당 DOM 클론 생성 방지
-  let s='';
-  c.childNodes.forEach(n=>{
-    if(n.nodeType===1&&n.classList.contains('row-copy-btn'))return;
-    s+=n.textContent;
-  });
-  return s;
-}
 function exportCSV(){
   let t=document.getElementById('dataTable');
   let csv=[];
   t.querySelectorAll('tr').forEach(r=>{
-    let row=[];r.querySelectorAll('th,td').forEach(c=>{
-      row.push('"'+cellTextNoCopyBtn(c).replace(/"/g,'""')+'"');
-    });
+    let row=[];r.querySelectorAll('th,td').forEach(c=>row.push('"'+c.textContent.replace(/"/g,'""')+'"'));
     csv.push(row.join(','));
   });
   let blob=new Blob(['﻿'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
   let a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=curDiv+'_'+[...selYears].join('-')+'_'+curGran+'.csv';a.click();
-}
-
-// 행/카드 단위로 슬랙 공유용 한 줄 텍스트 복사 — 전체 CSV 다운로드 없이 핵심 숫자만 빠르게 공유
-function copyToClipboard(text){
-  const done=()=>showToast('클립보드에 복사했습니다','success',1800);
-  // Clipboard API와 execCommand 둘 다 실패할 수 있는 non-HTTPS 환경을 위한 최종 수단 — 브라우저 네이티브 prompt는 보안 컨텍스트와 무관하게 항상 텍스트 선택/복사가 가능
-  const manualFallback=()=>{
-    showToast('자동 복사 실패 — 표시된 텍스트를 직접 복사해주세요','error',2500);
-    window.prompt('아래 텍스트를 Ctrl+C로 복사하세요:',text);
-  };
-  const execFallback=()=>{
-    try{
-      const ta=document.createElement('textarea');
-      ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
-      document.body.appendChild(ta);ta.select();
-      const ok=document.execCommand('copy');
-      document.body.removeChild(ta);
-      if(ok)done();else manualFallback();
-    }catch(e){manualFallback();}
-  };
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(done).catch(execFallback);
-  }else{
-    execFallback();
-  }
-}
-function copyKpiSummary(btn){
-  const card=btn.closest('.kpi');
-  const label=card.querySelector('.kl').textContent.trim();
-  const val=card.querySelector('.kv').textContent.trim();
-  const diff=card.querySelector('.ks').textContent.trim();
-  const viewName=VIEW_NAMES[curDiv]||curDiv;
-  copyToClipboard(`${viewName} ${label}: ${val}`+(diff?` (${diff})`:''));
-}
-function copyRowSummary(btn){
-  const tr=btn.closest('tr');
-  const firstCell=tr.children[0].cloneNode(true);
-  firstCell.querySelectorAll('.row-copy-btn').forEach(b=>b.remove());
-  const label=firstCell.textContent.trim();
-  const headers=[...document.querySelectorAll('#dHead th')].map(th=>th.textContent.trim());
-  const cells=[...tr.children];
-  const KEY_METRICS=['순매출','공헌이익','ROI'];
-  const parts=[];
-  KEY_METRICS.forEach(key=>{
-    const idx=headers.indexOf(key);
-    if(idx<1||!cells[idx])return;
-    const v=cells[idx].textContent.trim();
-    if(!v||v==='-')return;
-    parts.push(key+' '+v);
-  });
-  const viewName=VIEW_NAMES[curDiv]||curDiv;
-  const text=parts.length?`${viewName} ${label} — `+parts.join(', '):`${viewName} ${label}`;
-  copyToClipboard(text);
 }
 
 let isAdmin = false;
