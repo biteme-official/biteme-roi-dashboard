@@ -128,7 +128,9 @@ function processView(csv, viewCfg) {
     const dateStr = `${year}-${month}-${day}`;
 
     if (viewCfg.isChannelCM) {
-      const ch = row['채널구분'] || 'All';
+      const ch = row['채널구분'];
+      // 채널구분="All"은 Tableau 그랜드토탈 행(채널ROI용 차원과 교차되어 일자별 2회 중복 발생) — 실제 채널이 아니므로 집계에서 제외
+      if (!ch || ch === 'All') continue;
       const cmRaw = row['공헌이익(최종)(세분화)'] || row['Measure Values'] || '0';
       const cmVal = parseFloat(cmRaw.replace(/,/g, '')) || 0;
       if (!daily['__channel_cm']) daily['__channel_cm'] = {};
