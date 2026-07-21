@@ -8,8 +8,8 @@
 
 ### ① 관리자 비밀번호 프론트엔드 소스코드 평문 노출
 
-* **상세 진단:** 관리자 모드(사업부별 공헌이익 브레이크다운·일자별 드릴다운) 진입 비밀번호 `1105`가 index.html 클라이언트 JavaScript 2327번째 줄에 평문 하드코딩. F12 → Sources 탭 한 번이면 누구나 확인 가능, URL을 아는 모든 접속자가 민감 재무 정보에 접근 가능.
-* **[AS-IS]** `index.html:2327` → `if(pw==='1105'){`
+* **상세 진단:** 관리자 모드(사업부별 공헌이익 브레이크다운·일자별 드릴다운) 진입 비밀번호가 index.html 클라이언트 JavaScript 2327번째 줄에 평문 하드코딩. F12 → Sources 탭 한 번이면 누구나 확인 가능, URL을 아는 모든 접속자가 민감 재무 정보에 접근 가능.
+* **[AS-IS]** `index.html:2327` → `if(pw==='****'){`
 * **[TO-BE]** `api/admin-auth.js` 서버 엔드포인트 신규 생성, `process.env.ADMIN_PASSWORD` 환경변수와 비교. 클라이언트는 서버 OK/FAIL 응답만 수신.
 
 ### ② Avg. DAU 집계 기준 불일치 → CVR 단위 간 수십 배 왜곡
@@ -61,6 +61,6 @@
 https://github.com/biteme-official/biteme-roi-dashboard 이번 주 QC 리포트 High 이슈 수정하자.
 main 기준으로 20260701-bmdonghoon 브랜치 새로 만들고, 아래 항목 순서대로 수정해줘:
 
-1. index.html 2325~2338번째 줄의 submitAdminPw() 함수에서 if(pw==='1105') 하드코딩 비밀번호를 제거하고, api/admin-auth.js 서버사이드 엔드포인트를 신규 생성해 process.env.ADMIN_PASSWORD와 비교하도록 전환하세요.
+1. index.html 2325~2338번째 줄의 submitAdminPw() 함수에서 하드코딩된 비밀번호 비교를 제거하고, api/admin-auth.js 서버사이드 엔드포인트를 신규 생성해 process.env.ADMIN_PASSWORD와 비교하도록 전환하세요.
 2. api/tableau-data.js 208~226번째 줄의 집계 루프에서 [M, W] 버킷에도 AVG_MEASURES 평균 나누기 처리를 추가하고, index.html 909~915번째 줄의 M/W DAU 렌더링 구간을 합산(s+=dv)에서 평균(s+=dv; cnt++; val=s/cnt)으로 수정하세요.
 ```
