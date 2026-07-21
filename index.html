@@ -864,7 +864,10 @@ function renderPNL(){
       prevYear=yr;
 
       // Weekly summary row first
-      let wData=wLvl[g.week]||null;
+      // 월 필터로 주가 잘렸을 경우(부분주) 사전집계 데이터 대신 보이는 일별로 직접 합산
+      const allWeekDays=Object.keys(lvl).filter(d=>isoWeekKey(d)===g.week&&selYears.has(yearOfKey(d)));
+      const isFullWeek=allWeekDays.length===g.days.length;
+      let wData=(isFullWeek?wLvl[g.week]:null)||null;
       let weekLabel=periodLabel(g.week,'W');
       let promoVal=getPromo(g.week);
       let promoHtml=`<td><input class="promo-input" type="text" placeholder="프로모션명" value="${promoVal.replace(/"/g,'&quot;')}" onchange="savePromo('${g.week}',this.value)"></td>`;
@@ -1717,7 +1720,9 @@ function renderChannelWD(ch,periods,lvl,channels){
 
   let cols=[];
   weekGroups.forEach(g=>{
-    cols.push({label:'📅 '+periodLabel(g.week,'W')+' 합산',isWeek:true,key:g.week,wData:wLvl[g.week]||null,days:g.days});
+    const allWeekDays=Object.keys(lvl).filter(d=>isoWeekKey(d)===g.week&&selYears.has(yearOfKey(d)));
+    const isFullWeek=allWeekDays.length===g.days.length;
+    cols.push({label:'📅 '+periodLabel(g.week,'W')+' 합산',isWeek:true,key:g.week,wData:(isFullWeek?wLvl[g.week]:null)||null,days:g.days});
     g.days.forEach(d=>cols.push({label:periodLabel(d,'D'),isWeek:false,key:d}));
   });
 
