@@ -971,21 +971,21 @@ function renderSummary(){
       data:{
         labels:cLabels,
         datasets:[
-          {type:'bar',label:'플랫폼 공헌이익',data:cPf,backgroundColor:'#3B82F6',stack:'cm',yAxisID:'y'},
-          {type:'bar',label:'브랜드 공헌이익',data:cBr,backgroundColor:'#10B981',stack:'cm',yAxisID:'y'},
-          {type:'bar',label:'해외 공헌이익',data:cOv,backgroundColor:'#8B5CF6',stack:'cm',yAxisID:'y'},
-          {type:'line',label:'전사 ROI (%)',data:cRoi,borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.1)',pointRadius:4,pointHoverRadius:6,yAxisID:'y2',tension:0.3,borderWidth:2,spanGaps:false},
+          {type:'bar',label:'플랫폼 공헌이익',data:cPf,backgroundColor:'rgba(56,189,248,0.72)',borderColor:'rgba(14,165,233,0.9)',borderWidth:1,stack:'cm',yAxisID:'y',order:1},
+          {type:'bar',label:'브랜드 공헌이익',data:cBr,backgroundColor:'rgba(52,211,153,0.72)',borderColor:'rgba(16,185,129,0.9)',borderWidth:1,stack:'cm',yAxisID:'y',order:1},
+          {type:'bar',label:'해외 공헌이익',data:cOv,backgroundColor:'rgba(167,139,250,0.72)',borderColor:'rgba(139,92,246,0.9)',borderWidth:1,stack:'cm',yAxisID:'y',order:1},
+          {type:'line',label:'전사 ROI (%)',data:cRoi,borderColor:'#F43F5E',backgroundColor:'rgba(244,63,94,0.06)',pointBackgroundColor:'#F43F5E',pointBorderColor:'#fff',pointBorderWidth:1.5,pointRadius:5,pointHoverRadius:7,yAxisID:'y2',tension:0.35,borderWidth:2.5,spanGaps:true,fill:false,order:0},
         ]
       },
       options:{
         responsive:true,maintainAspectRatio:false,
         plugins:{
-          legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
-          tooltip:{callbacks:{label:c=>c.datasetIndex<3?c.dataset.label+': '+fmt(c.raw):c.dataset.label+': '+c.raw.toFixed(1)+'%'}}
+          legend:{position:'bottom',labels:{boxWidth:12,font:{size:11},padding:14}},
+          tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.datasetIndex<3?c.dataset.label+': '+fmt(c.raw):c.dataset.label+': '+(c.raw!=null?c.raw.toFixed(1)+'%':'-')}}
         },
         scales:{
-          y:{stacked:true,ticks:{callback:v=>fmt(v)},grid:{color:'rgba(0,0,0,.04)'}},
-          y2:{position:'right',min:0,max:50,ticks:{callback:v=>v+'%'},grid:{display:false}}
+          y:{stacked:true,ticks:{callback:v=>fmt(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+          y2:{position:'right',min:0,ticks:{callback:v=>v+'%',font:{size:10}},grid:{display:false}}
         }
       }
     });
