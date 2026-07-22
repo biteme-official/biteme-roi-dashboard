@@ -370,6 +370,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
     <div class="div-tab" data-div="platform" onclick="navClick(0,'platform')">플랫폼사업부</div>
     <div class="div-tab" data-div="brand_total" onclick="navClick(0,'brand_total')">브랜드사업부</div>
     <div class="div-tab" data-div="overseas" onclick="navClick(0,'overseas')">해외사업부</div>
+    <div class="div-tab" data-div="summary" onclick="navClick(0,'summary')">SUMMARY</div>
   </div>
   <div class="nav-l2" id="navL2" style="display:none">
     <span class="nav-arrow">└</span>
@@ -381,7 +382,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   </div>
 </div>
 
-<div class="controls">
+<div class="controls" id="mainControls">
   <div class="ctrl-group">
     <span class="ctrl-label">빠른 조회</span>
     <button class="preset-btn" onclick="applyPreset('yesterday')">어제</button>
@@ -418,7 +419,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   <div class="ctrl-group"><span class="ctrl-label" id="infoLabel">-</span></div>
 </div>
 
-<div class="kpi-section">
+<div class="kpi-section" id="kpiSection">
 <div class="kpi-total-label" id="kpiTotalLabel">전체 TOTAL</div>
 <div class="kpi-row">
   <div class="kpi c-blue"><div class="kl">거래액</div><div class="kv" id="k-g">-</div><div class="ks" id="k-g-c"></div><span class="kpi-spark-wrap" id="k-g-spark"></span></div>
@@ -431,7 +432,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div id="monthKpiContainer"></div>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap" id="pnlTable">
   <div class="table-header"><h3 id="tableTitle">P&L 상세</h3></div>
   <div class="table-scroll" id="tableScroll"><table class="data" id="dataTable"><thead id="dHead"></thead><tbody id="dBody"></tbody></table></div>
   <div id="deliveryToggleWrap" style="display:none">
@@ -448,16 +449,28 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div id="b2bGradeDetailSection" style="display:none"></div>
 <div id="ssfwGonguDetailSection" style="display:none"></div>
 <div id="compiraGonguDetailSection" style="display:none"></div>
-<div class="section">
+<div class="section" id="trendSection">
   <div class="section-head"><div class="section-num">1</div><div class="section-title">트렌드 분석</div><span class="section-badge">Trend</span></div>
   <div class="chart-grid">
     <div class="chart-card full"><h4>매출 · 공헌이익 · ROI 추이</h4><div class="cs" id="trendSub">-</div><div class="chart-container tall"><canvas id="chartTrend"></canvas></div></div>
   </div>
 </div>
 
-<div class="section">
+<div class="section" id="waterfallSection">
   <div class="section-head"><div class="section-num">2</div><div class="section-title">수익 구조</div><span class="section-badge">Unit Economics</span></div>
   <div class="chart-grid"><div class="chart-card full"><h4>거래액 100원 수익 구조</h4><div class="cs" id="wfSub">최근 기간 기준</div><div class="chart-container tall"><canvas id="chartWaterfall"></canvas></div></div></div>
+</div>
+
+<div id="secSummary" style="display:none">
+  <div id="summaryDayBar" style="margin-bottom:10px"></div>
+  <div class="table-wrap" id="summaryPivotTable" style="margin-bottom:16px"></div>
+  <div style="display:flex;gap:12px;align-items:stretch;margin-bottom:16px">
+    <div class="table-wrap" id="summaryCompTable" style="flex:0 0 auto;width:fit-content"></div>
+    <div class="table-wrap" style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div class="table-header"><h3>동기간 공헌이익 추이<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">Same-period</span></h3></div>
+      <div style="flex:1;position:relative;min-height:0;padding:12px"><canvas id="chartSummary"></canvas></div>
+    </div>
+  </div>
 </div>
 
 <div class="section" id="secChannel" style="display:none">
@@ -608,6 +621,7 @@ const L3_MAP = {etc:[{div:'etc_channel',label:'그외채널 CM'},{div:'ssfw',lab
 const GRAN_NAMES = {M:'월간',W:'주간',D:'일간',WD:'주간+일간'};
 
 let curDiv='grand_total', selYears=new Set(['2026']), curGran='M', selMonths=new Set(), charts={};
+let summaryRefDay=null;
 let showDeliveryDetail=false;
 let showGonguDetail=false;
 let showB2bGradeDetail=false;
@@ -790,10 +804,192 @@ function renderDeliveryDetail(){
 }
 
 function render(){
-  let isChannel=(curDiv==='etc_channel');
+  const isSummary=(curDiv==='summary');
+  const isChannel=(curDiv==='etc_channel');
+  ['mainControls','kpiSection','pnlTable','trendSection','waterfallSection'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display=isSummary?'none':'';
+  });
+  document.getElementById('secSummary').style.display=isSummary?'':'none';
   document.getElementById('secChannel').style.display=isChannel?'':'none';
+  if(isSummary){renderSummary();document.getElementById('qcSection').style.display='none';return;}
   if(isChannel){renderChannel();document.getElementById('qcSection').style.display='none';return;}
   renderPNL();
+}
+
+function renderSummary(){
+  const pf=D.views.platform, br=D.views.brand_total, ov=D.views.overseas, gt=D.views.grand_total;
+  if(!pf||!br||!ov||!gt){
+    document.getElementById('summaryCompTable').innerHTML='<div style="padding:24px;color:var(--text-sub)">데이터 로딩 중...</div>';
+    return;
+  }
+  const cutoffDay=D.cutoff?parseInt(D.cutoff.split('-')[2]):20;
+  const refDay=summaryRefDay!==null?summaryRefDay:cutoffDay;
+
+  // ── 월별 피벗 테이블 (CSV 왼쪽 구조) ──────────────────────────────
+  const availMonths=[];
+  for(let m=1;m<=12;m++){
+    const mk='2026-'+String(m).padStart(2,'0');
+    if(pf.M?.[mk]||br.M?.[mk]||ov.M?.[mk]) availMonths.push(m);
+  }
+
+  // 동기간 누적 CM (day 1~refDay) per division per month
+  const dayCm={pf:{},br:{},ov:{}};
+  availMonths.forEach(m=>{
+    const mk='2026-'+String(m).padStart(2,'0');
+    let pc=0,bc=0,oc=0;
+    for(let d=1;d<=refDay;d++){
+      const dk=mk+'-'+String(d).padStart(2,'0');
+      pc+=(gv(pf.D?.[dk],'공헌이익')||0);
+      bc+=(gv(br.D?.[dk],'공헌이익')||0);
+      oc+=(gv(ov.D?.[dk],'공헌이익')||0);
+    }
+    dayCm.pf[m]=pc; dayCm.br[m]=bc; dayCm.ov[m]=oc;
+  });
+
+  // 헤더
+  let pvHdr1='<tr><th style="text-align:left;min-width:72px">지표</th>';
+  let pvHdr2='<tr><th></th>';
+  availMonths.forEach(m=>{
+    pvHdr1+=`<th colspan="3" class="group-hd-common">${m}월</th>`;
+    pvHdr2+=`<th style="background:#1D4ED8">플랫폼</th><th style="background:#047857">브랜드</th><th style="background:#6B21A8">해외</th>`;
+  });
+  pvHdr1+='</tr>'; pvHdr2+='</tr>';
+
+  // 행 빌더
+  const pvRow=(label,fn,tdStyle)=>{
+    let r=`<tr><td style="font-weight:700;font-size:11px">${label}</td>`;
+    availMonths.forEach(m=>{
+      const mk='2026-'+String(m).padStart(2,'0');
+      const [v0,v1,v2]=fn(m,mk);
+      r+=`<td style="${tdStyle}">${v0!=null?v0:'-'}</td><td style="${tdStyle}">${v1!=null?v1:'-'}</td><td style="${tdStyle}">${v2!=null?v2:'-'}</td>`;
+    });
+    return r+'</tr>';
+  };
+
+  const colSpan=1+availMonths.length*3;
+  let pvRows='';
+  const sumStyle='font-weight:700;color:var(--text);text-align:center;font-variant-numeric:tabular-nums';
+  pvRows+=pvRow(`동기간 (${refDay}일 누적)`, (m)=>[
+    fmt(dayCm.pf[m]), fmt(dayCm.br[m]), fmt(dayCm.ov[m])
+  ], sumStyle);
+  pvRows+=pvRow('순매출', (m,mk)=>[
+    gv(pf.M?.[mk],'순매출')!=null?fmt(gv(pf.M[mk],'순매출')):null,
+    gv(br.M?.[mk],'순매출')!=null?fmt(gv(br.M[mk],'순매출')):null,
+    gv(ov.M?.[mk],'순매출')!=null?fmt(gv(ov.M[mk],'순매출')):null,
+  ], sumStyle);
+  pvRows+=pvRow('ROI', (m,mk)=>{
+    const calc=(dv)=>{const ns=gv(dv.M?.[mk],'순매출'),cm=gv(dv.M?.[mk],'공헌이익');return(ns&&cm)?((cm/ns)*100).toFixed(1)+'%':null;};
+    return[calc(pf),calc(br),calc(ov)];
+  }, sumStyle);
+  pvRows+=pvRow('공헌이익', (m,mk)=>[
+    gv(pf.M?.[mk],'공헌이익')!=null?fmt(gv(pf.M[mk],'공헌이익')):null,
+    gv(br.M?.[mk],'공헌이익')!=null?fmt(gv(br.M[mk],'공헌이익')):null,
+    gv(ov.M?.[mk],'공헌이익')!=null?fmt(gv(ov.M[mk],'공헌이익')):null,
+  ], sumStyle);
+  pvRows+=`<tr><td colspan="${colSpan}" style="padding:0;height:3px;background:var(--border)"></td></tr>`;
+  for(let d=1;d<=31;d++){
+    pvRows+=pvRow(String(d),(m,mk)=>{ // daily rows: no special style
+      const hasM=!!(pf.M?.[mk]||br.M?.[mk]||ov.M?.[mk]);
+      if(!hasM)return[null,null,null];
+      const dk=mk+'-'+String(d).padStart(2,'0');
+      const pfv=pf.D?.[dk]?gv(pf.D[dk],'공헌이익'):null;
+      const brv=br.D?.[dk]?gv(br.D[dk],'공헌이익'):null;
+      const ovv=ov.D?.[dk]?gv(ov.D[dk],'공헌이익'):null;
+      if(pfv===null&&brv===null&&ovv===null)return['-','-','-'];
+      return[pfv!=null?fmtCell(pfv):'0', brv!=null?fmtCell(brv):'0', ovv!=null?fmtCell(ovv):'0'];
+    },'');
+  }
+
+  document.getElementById('summaryDayBar').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.3px">기준 일자</span>
+      <input type="number" id="summaryDayInput" min="1" max="31" value="${refDay}"
+        style="width:48px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;text-align:center;color:var(--navy)"
+        onchange="summaryRefDay=Math.max(1,Math.min(31,parseInt(this.value)||1));renderSummary()">
+      <span style="font-size:11px;color:var(--text-sub)">일 — 동기간 누적 공헌이익에 적용</span>
+    </div>`;
+
+  document.getElementById('summaryPivotTable').innerHTML=`
+    <div class="table-header"><h3>월별 요약<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">사업부별 순매출 · 공헌이익 · ROI</span></h3></div>
+    <div class="table-scroll"><table class="data"><thead>${pvHdr1}${pvHdr2}</thead><tbody>${pvRows}</tbody></table></div>`;
+
+  // ── 동기간 비교표 ────────────────────────────────────────────────
+  let rows='', cPf=[], cBr=[], cOv=[], cRoi=[], cLabels=[];
+  for(let m=1;m<=12;m++){
+    const mKey='2026-'+String(m).padStart(2,'0');
+    const label=m+'월';
+    let pfCm=0,brCm=0,ovCm=0,hasDay=false;
+    for(let d=1;d<=refDay;d++){
+      const dk=mKey+'-'+String(d).padStart(2,'0');
+      const pd=pf.D?.[dk],bd=br.D?.[dk],od=ov.D?.[dk];
+      if(pd||bd||od)hasDay=true;
+      pfCm+=(gv(pd,'공헌이익')||0);
+      brCm+=(gv(bd,'공헌이익')||0);
+      ovCm+=(gv(od,'공헌이익')||0);
+    }
+    const pfM=pf.M?.[mKey],brM=br.M?.[mKey],ovM=ov.M?.[mKey],gtM=gt.M?.[mKey];
+    const monthCm=(gv(pfM,'공헌이익')||0)+(gv(brM,'공헌이익')||0)+(gv(ovM,'공헌이익')||0);
+    const monthNs=gv(gtM,'순매출');
+    const roi=(monthNs&&monthCm)?monthCm/monthNs*100:null;
+    cLabels.push(label);
+    if(!hasDay&&!gtM){
+      rows+=`<tr><td style="font-weight:700;color:var(--text-sub);padding:5px 8px">${label}</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td></tr>`;
+      cPf.push(null);cBr.push(null);cOv.push(null);cRoi.push(null);
+    } else {
+      const sum=pfCm+brCm+ovCm;
+      rows+=`<tr>
+        <td style="font-weight:700;padding:5px 8px">${label}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(pfCm):'-'}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(brCm):'-'}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(ovCm):'-'}</td>
+        <td class="col-cm" style="padding:5px 6px">${hasDay?fmtCell(sum):'-'}</td>
+        <td style="padding:5px 6px">${gtM?fmtCell(monthCm):'-'}</td>
+        <td class="col-ns" style="padding:5px 6px">${monthNs!=null?fmtCell(monthNs):'-'}</td>
+        <td class="col-pct" style="padding:5px 6px">${roi!=null?roi.toFixed(1)+'%':'-'}</td>
+      </tr>`;
+      cPf.push(hasDay?pfCm:null);cBr.push(hasDay?brCm:null);cOv.push(hasDay?ovCm:null);cRoi.push(roi);
+    }
+  }
+
+  document.getElementById('summaryCompTable').innerHTML=`
+    <div class="table-header"><h3 style="font-size:13px">동기간 비교표<span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:6px">${refDay}일 기준 · 공헌이익</span></h3></div>
+    <div class="table-scroll" style="overflow-x:hidden"><table class="data" style="font-size:11px"><thead><tr>
+      <th style="text-align:left;width:32px;min-width:32px;padding:5px 6px;font-size:11px">월</th>
+      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">플랫폼</th>
+      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">브랜드</th>
+      <th style="width:52px;min-width:52px;padding:5px 6px;font-size:11px">해외</th>
+      <th class="col-cm" style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">합산</th>
+      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">월간총합</th>
+      <th class="col-ns" style="width:62px;min-width:62px;padding:5px 6px;font-size:11px">순매출</th>
+      <th class="col-pct" style="width:40px;min-width:40px;padding:5px 6px;font-size:11px">ROI</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+
+  if(charts.summary){charts.summary.destroy();charts.summary=null;}
+  const ctx=document.getElementById('chartSummary');
+  if(ctx){
+    charts.summary=new Chart(ctx,{
+      data:{
+        labels:cLabels,
+        datasets:[
+          {type:'bar',label:'플랫폼 공헌이익',data:cPf,backgroundColor:'#3B82F6',stack:'cm',yAxisID:'y'},
+          {type:'bar',label:'브랜드 공헌이익',data:cBr,backgroundColor:'#10B981',stack:'cm',yAxisID:'y'},
+          {type:'bar',label:'해외 공헌이익',data:cOv,backgroundColor:'#8B5CF6',stack:'cm',yAxisID:'y'},
+          {type:'line',label:'전사 ROI (%)',data:cRoi,borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.1)',pointRadius:4,pointHoverRadius:6,yAxisID:'y2',tension:0.3,borderWidth:2,spanGaps:false},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+          tooltip:{callbacks:{label:c=>c.datasetIndex<3?c.dataset.label+': '+fmt(c.raw):c.dataset.label+': '+c.raw.toFixed(1)+'%'}}
+        },
+        scales:{
+          y:{stacked:true,ticks:{callback:v=>fmt(v)},grid:{color:'rgba(0,0,0,.04)'}},
+          y2:{position:'right',min:0,max:50,ticks:{callback:v=>v+'%'},grid:{display:false}}
+        }
+      }
+    });
+  }
 }
 
 function measureCls(m){
@@ -2032,7 +2228,7 @@ function navClick(level,d,opts){
 
 // 채널 트리에서 div가 속한 L1/L2/L3 조상 경로를 찾아 navClick 체인으로 재구성
 function navPathFor(div){
-  if(['grand_total','platform','brand_total','overseas'].includes(div))return{l1:div};
+  if(['grand_total','platform','brand_total','overseas','summary'].includes(div))return{l1:div};
   for(const l1 of Object.keys(L2_MAP)){
     if(L2_MAP[l1].some(i=>i.div===div))return{l1,l2:div};
   }
