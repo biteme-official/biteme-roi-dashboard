@@ -17,6 +17,8 @@ const VIEWS = [
   { id: 'e8e85ab9-93ba-4763-8ab8-4e2c9e1a5d28', key: 'compira_gongu', viewFilters: { '세부채널': '스마트스토어_모멘테일' } },
 ];
 
+const SUMMARY_VIEW_ID = '615ed1ee-27a9-440b-82e7-70b4c99100a9';
+
 const AVG_MEASURES = new Set(['Avg. dau']);
 
 const MONTH_NUM = {};
@@ -230,6 +232,32 @@ function aggregate(allDaily) {
   return views;
 }
 
+function processSummaryView(csv) {
+  const rows = parseCSV(csv);
+  const daily = { summary_pf: {}, summary_br: {}, summary_ov: {} };
+  const divMap = { '플랫폼': 'summary_pf', '브랜드': 'summary_br', '해외': 'summary_ov' };
+  for (const row of rows) {
+    const dayRaw = row['Day of day'];
+    const monthRaw = row['Month of day'];
+    const yearRaw = row['Year of day'];
+    const div = row['플/브/해'];
+    if (!dayRaw || !monthRaw || !yearRaw || !div) continue;
+    const month = MONTH_NUM[monthRaw];
+    if (!month) continue;
+    const dayNum = parseInt(dayRaw);
+    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
+    const vKey = divMap[div];
+    if (!vKey) continue;
+    const dateStr = `${yearRaw.trim()}-${month}-${String(dayNum).padStart(2, '0')}`;
+    const cm = parseFloat((row['공헌이익'] || '').replace(/,/g, '')) || 0;
+    const ns = parseFloat((row['순매출'] || '').replace(/,/g, '')) || 0;
+    if (!daily[vKey][dateStr]) daily[vKey][dateStr] = {};
+    daily[vKey][dateStr]['공헌이익'] = cm;
+    daily[vKey][dateStr]['순매출'] = ns;
+  }
+  return daily;
+}
+
 function aggregateChannelCM(dailyChannels) {
   const Y = {}, Q = {}, M = {}, W = {}, D = {};
   for (const [ds, channels] of Object.entries(dailyChannels)) {
@@ -299,9 +327,12 @@ module.exports = async function handler(req, res) {
     const auth = await signIn();
     token = auth.token;
 
-    const csvs = await Promise.all(
-      VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {}))
-    );
+    const allCsvs = await Promise.all([
+      ...VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {})),
+      fetchViewCSV(token, auth.siteId, SUMMARY_VIEW_ID),
+    ]);
+    const csvs = allCsvs.slice(0, VIEWS.length);
+    const summaryCsv = allCsvs[VIEWS.length];
 
     const allDaily = {};
     let channelDaily = null;
@@ -313,6 +344,7 @@ module.exports = async function handler(req, res) {
       }
       Object.assign(allDaily, daily);
     }
+    Object.assign(allDaily, processSummaryView(summaryCsv));
 
     // 고정비일자 = 브랜드 채널 뷰들의 마지막 날짜
     const brandKeys = ['ss_total', 'coupang', 'b2b', 'etc'];
