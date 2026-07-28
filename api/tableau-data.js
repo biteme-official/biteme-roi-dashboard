@@ -61,7 +61,7 @@ function parseCSV(text) {
 }
 
 function isoWeekKey(year, month, day) {
-  const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const dt = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
   dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7);
   const w1 = new Date(dt.getFullYear(), 0, 4);
   w1.setDate(w1.getDate() + 3 - (w1.getDay() + 6) % 7);
@@ -121,7 +121,7 @@ function processView(csv, viewCfg) {
     if (!dayRaw || !monthRaw || !yearRaw) continue;
     const month = MONTH_NUM[monthRaw];
     if (!month) continue;
-    const dayNum = parseInt(dayRaw);
+    const dayNum = parseInt(dayRaw, 10);
     if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
 
     const day = String(dayNum).padStart(2, '0');
@@ -189,7 +189,7 @@ function aggregate(allDaily) {
       const [yr, mo] = ds.split('-');
       const yk = yr;
       const mk = `${yr}-${mo}`;
-      const qk = `${yr}-Q${Math.ceil(parseInt(mo) / 3)}`;
+      const qk = `${yr}-Q${Math.ceil(parseInt(mo, 10) / 3)}`;
       const wk = isoWeekKey(yr, mo, ds.split('-')[2]);
 
       D[ds] = {};
@@ -244,7 +244,7 @@ function processSummaryView(csv) {
     if (!dayRaw || !monthRaw || !yearRaw || !div) continue;
     const month = MONTH_NUM[monthRaw];
     if (!month) continue;
-    const dayNum = parseInt(dayRaw);
+    const dayNum = parseInt(dayRaw, 10);
     if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) continue;
     const vKey = divMap[div];
     if (!vKey) continue;
@@ -264,7 +264,7 @@ function aggregateChannelCM(dailyChannels) {
     const [yr, mo] = ds.split('-');
     const yk = yr;
     const mk = `${yr}-${mo}`;
-    const qk = `${yr}-Q${Math.ceil(parseInt(mo) / 3)}`;
+    const qk = `${yr}-Q${Math.ceil(parseInt(mo, 10) / 3)}`;
     const wk = isoWeekKey(yr, mo, ds.split('-')[2]);
 
     D[ds] = {};
@@ -327,12 +327,16 @@ module.exports = async function handler(req, res) {
     const auth = await signIn();
     token = auth.token;
 
-    const allCsvs = await Promise.all([
-      ...VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {})),
-      fetchViewCSV(token, auth.siteId, SUMMARY_VIEW_ID),
-    ]);
-    const csvs = allCsvs.slice(0, VIEWS.length);
-    const summaryCsv = allCsvs[VIEWS.length];
+    const csvs = await Promise.all(
+      VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {}))
+    );
+
+    let summaryCsv = null;
+    try {
+      summaryCsv = await fetchViewCSV(token, auth.siteId, SUMMARY_VIEW_ID, {});
+    } catch (summaryErr) {
+      console.error('SUMMARY view fetch failed (non-fatal):', summaryErr.message);
+    }
 
     const allDaily = {};
     let channelDaily = null;
@@ -344,7 +348,7 @@ module.exports = async function handler(req, res) {
       }
       Object.assign(allDaily, daily);
     }
-    Object.assign(allDaily, processSummaryView(summaryCsv));
+    if (summaryCsv) Object.assign(allDaily, processSummaryView(summaryCsv));
 
     // 고정비일자 = 브랜드 채널 뷰들의 마지막 날짜
     const brandKeys = ['ss_total', 'coupang', 'b2b', 'etc'];

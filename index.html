@@ -822,29 +822,32 @@ function renderSummary(){
     document.getElementById('summaryCompTable').innerHTML='<div style="padding:24px;color:var(--text-sub)">데이터 로딩 중...</div>';
     return;
   }
-  const cutoffDay=D.cutoff?parseInt(D.cutoff.split('-')[2]):20;
+  const cutoffDay=D.cutoff?parseInt(D.cutoff.split('-')[2],10):20;
   const refDay=summaryRefDay!==null?summaryRefDay:cutoffDay;
+  const summaryYear=D.cutoff?D.cutoff.split('-')[0]:String(new Date().getFullYear());
+
+  // 동기간 누적 CM (day 1~refDay) per division per month + hasDay flag
+  const dayCm={pf:{},br:{},ov:{},hasDay:{}};
+  for(let m=1;m<=12;m++){
+    const mk=summaryYear+'-'+String(m).padStart(2,'0');
+    let pc=0,bc=0,oc=0,hd=false;
+    for(let d=1;d<=refDay;d++){
+      const dk=mk+'-'+String(d).padStart(2,'0');
+      const pd=pf.D?.[dk],bd=br.D?.[dk],od=ov.D?.[dk];
+      if(pd||bd||od)hd=true;
+      pc+=(gv(pd,'공헌이익')||0);
+      bc+=(gv(bd,'공헌이익')||0);
+      oc+=(gv(od,'공헌이익')||0);
+    }
+    dayCm.pf[m]=pc; dayCm.br[m]=bc; dayCm.ov[m]=oc; dayCm.hasDay[m]=hd;
+  }
 
   // ── 월별 피벗 테이블 (CSV 왼쪽 구조) ──────────────────────────────
   const availMonths=[];
   for(let m=1;m<=12;m++){
-    const mk='2026-'+String(m).padStart(2,'0');
+    const mk=summaryYear+'-'+String(m).padStart(2,'0');
     if(pf.M?.[mk]||br.M?.[mk]||ov.M?.[mk]) availMonths.push(m);
   }
-
-  // 동기간 누적 CM (day 1~refDay) per division per month
-  const dayCm={pf:{},br:{},ov:{}};
-  availMonths.forEach(m=>{
-    const mk='2026-'+String(m).padStart(2,'0');
-    let pc=0,bc=0,oc=0;
-    for(let d=1;d<=refDay;d++){
-      const dk=mk+'-'+String(d).padStart(2,'0');
-      pc+=(gv(pf.D?.[dk],'공헌이익')||0);
-      bc+=(gv(br.D?.[dk],'공헌이익')||0);
-      oc+=(gv(ov.D?.[dk],'공헌이익')||0);
-    }
-    dayCm.pf[m]=pc; dayCm.br[m]=bc; dayCm.ov[m]=oc;
-  });
 
   // 헤더
   let pvHdr1='<tr><th style="text-align:left;min-width:72px">지표</th>';
@@ -859,7 +862,7 @@ function renderSummary(){
   const pvRow=(label,fn,tdStyle)=>{
     let r=`<tr><td style="font-weight:700;font-size:11px">${label}</td>`;
     availMonths.forEach(m=>{
-      const mk='2026-'+String(m).padStart(2,'0');
+      const mk=summaryYear+'-'+String(m).padStart(2,'0');
       const [v0,v1,v2]=fn(m,mk);
       r+=`<td style="${tdStyle}">${v0!=null?v0:'-'}</td><td style="${tdStyle}">${v1!=null?v1:'-'}</td><td style="${tdStyle}">${v2!=null?v2:'-'}</td>`;
     });
@@ -905,7 +908,7 @@ function renderSummary(){
       <span style="font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.3px">기준 일자</span>
       <input type="number" id="summaryDayInput" min="1" max="31" value="${refDay}"
         style="width:48px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;text-align:center;color:var(--navy)"
-        onchange="summaryRefDay=Math.max(1,Math.min(31,parseInt(this.value)||1));renderSummary()">
+        onchange="summaryRefDay=Math.max(1,Math.min(31,parseInt(this.value,10)||1));renderSummary()">
       <span style="font-size:11px;color:var(--text-sub)">일 — 동기간 누적 공헌이익에 적용</span>
     </div>`;
 
@@ -916,17 +919,9 @@ function renderSummary(){
   // ── 동기간 비교표 ────────────────────────────────────────────────
   let rows='', cPf=[], cBr=[], cOv=[], cRoi=[], cLabels=[];
   for(let m=1;m<=12;m++){
-    const mKey='2026-'+String(m).padStart(2,'0');
+    const mKey=summaryYear+'-'+String(m).padStart(2,'0');
     const label=m+'월';
-    let pfCm=0,brCm=0,ovCm=0,hasDay=false;
-    for(let d=1;d<=refDay;d++){
-      const dk=mKey+'-'+String(d).padStart(2,'0');
-      const pd=pf.D?.[dk],bd=br.D?.[dk],od=ov.D?.[dk];
-      if(pd||bd||od)hasDay=true;
-      pfCm+=(gv(pd,'공헌이익')||0);
-      brCm+=(gv(bd,'공헌이익')||0);
-      ovCm+=(gv(od,'공헌이익')||0);
-    }
+    const pfCm=dayCm.pf[m], brCm=dayCm.br[m], ovCm=dayCm.ov[m], hasDay=dayCm.hasDay[m];
     const pfM=pf.M?.[mKey],brM=br.M?.[mKey],ovM=ov.M?.[mKey];
     const monthCm=(gv(pfM,'공헌이익')||0)+(gv(brM,'공헌이익')||0)+(gv(ovM,'공헌이익')||0);
     const monthNs=((gv(pfM,'순매출')||0)+(gv(brM,'순매출')||0)+(gv(ovM,'순매출')||0))||null;
