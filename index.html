@@ -469,10 +469,12 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
       <div id="summaryCompDayBar"></div>
       <div class="table-wrap" id="summaryCompTable"></div>
     </div>
-    <div class="table-wrap" style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
       <div id="summaryChartSpacer" style="visibility:hidden;pointer-events:none;margin-bottom:8px"></div>
-      <div class="table-header"><h3>동기간 공헌이익 추이<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">Same-period</span></h3></div>
-      <div style="flex:1;position:relative;min-height:0;padding:12px"><canvas id="chartSummary"></canvas></div>
+      <div class="table-wrap" style="flex:1;display:flex;flex-direction:column">
+        <div class="table-header"><h3>동기간 공헌이익 추이<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">Same-period</span></h3></div>
+        <div style="flex:1;position:relative;min-height:0;padding:12px"><canvas id="chartSummary"></canvas></div>
+      </div>
     </div>
   </div>
 </div>
