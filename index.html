@@ -465,10 +465,16 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   <div id="summaryDayBar" style="margin-bottom:10px"></div>
   <div class="table-wrap" id="summaryPivotTable" style="margin-bottom:16px"></div>
   <div style="display:flex;gap:12px;align-items:stretch;margin-bottom:16px">
-    <div class="table-wrap" id="summaryCompTable" style="flex:0 0 auto;width:fit-content"></div>
-    <div class="table-wrap" style="flex:1;min-width:0;display:flex;flex-direction:column">
-      <div class="table-header"><h3>동기간 공헌이익 추이<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">Same-period</span></h3></div>
-      <div style="flex:1;position:relative;min-height:0;padding:12px"><canvas id="chartSummary"></canvas></div>
+    <div style="flex:0 0 auto;width:fit-content;display:flex;flex-direction:column;gap:8px">
+      <div id="summaryCompDayBar"></div>
+      <div class="table-wrap" id="summaryCompTable"></div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div id="summaryChartSpacer" style="visibility:hidden;pointer-events:none;margin-bottom:8px"></div>
+      <div class="table-wrap" style="flex:1;display:flex;flex-direction:column">
+        <div class="table-header"><h3>동기간 공헌이익 추이<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">Same-period</span></h3></div>
+        <div style="flex:1;position:relative;min-height:0;padding:12px"><canvas id="chartSummary"></canvas></div>
+      </div>
     </div>
   </div>
 </div>
@@ -718,6 +724,8 @@ function toggleDeliveryDetail(){
   renderPNL();
 }
 
+function sumRows(days,src){const out={};days.forEach(d=>{Object.entries(src[d]||{}).forEach(([k,v])=>{if(typeof v==='number')out[k]=(out[k]||0)+v;});});return out;}
+
 function renderDeliveryDetail(){
   const sec=document.getElementById('deliveryDetailSection');
   if(!sec)return;
@@ -779,8 +787,20 @@ function renderDeliveryDetail(){
     const cellStyle=opts.indent?' style="font-weight:400"':'';
     let r=`<tr${trCls}><td${tdStyle}>${label}</td>`;
     COMMON.forEach(m=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
-    NBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}${i===0?' grp-left-nbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
-    GBD.forEach((m,i)=>{const val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);r+=`<td class="${detailCls(m)}${i===0?' grp-left-gbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;});
+    NBD.forEach((m,i)=>{
+      let val;
+      if(m.key==='스스_N배송 공헌이익'&&row.__cm_nbd!==undefined)val=row.__cm_nbd;
+      else if(m.key==='스스_N배송 ROI'&&row.__cm_nbd!==undefined){const ns=gv(row,'N배송 순매출');val=(ns&&row.__cm_nbd!=null)?row.__cm_nbd/ns*100:null;}
+      else val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);
+      r+=`<td class="${detailCls(m)}${i===0?' grp-left-nbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;
+    });
+    GBD.forEach((m,i)=>{
+      let val;
+      if(m.key==='스스_일반배송 공헌이익'&&row.__cm_gbd!==undefined)val=row.__cm_gbd;
+      else if(m.key==='스스_일반배송 ROI'&&row.__cm_gbd!==undefined){const ns=gv(row,'일반배송 순매출');val=(ns&&row.__cm_gbd!=null)?row.__cm_gbd/ns*100:null;}
+      else val=m.ratio||COMPUTED[m.key]?rv(row,m.key):gv(row,m.key);
+      r+=`<td class="${detailCls(m)}${i===0?' grp-left-gbd':''}"${cellStyle}>${fmtV(val,m.ratio)}</td>`;
+    });
     r+='</tr>';
     return r;
   };
@@ -793,7 +813,24 @@ function renderDeliveryDetail(){
     dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
     if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
     weekGroups.forEach(wg=>{
-      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',lvl[wg.week]||{},{summary:true});
+      const allWeekDays=Object.keys(dLvl).filter(d=>isoWeekKey(d)===wg.week&&selYears.has(yearOfKey(d)));
+      const isFullWeek=allWeekDays.length===wg.days.length;
+      let wRow;
+      if(isFullWeek){
+        wRow=lvl[wg.week]||{};
+      }else{
+        wRow=sumRows(wg.days,dLvl);
+        let ns=0,gs=0,nok=false,gok=false;
+        wg.days.forEach(d=>{
+          const dr=dLvl[d]||{};
+          const nc=COMPUTED['스스_N배송 공헌이익'](dr),gc=COMPUTED['스스_일반배송 공헌이익'](dr);
+          if(nc!=null){ns+=nc;nok=true;}
+          if(gc!=null){gs+=gc;gok=true;}
+        });
+        if(nok)wRow.__cm_nbd=ns;
+        if(gok)wRow.__cm_gbd=gs;
+      }
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',wRow,{summary:true});
       wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),dLvl[d]||{},{indent:true});});
     });
   }else{
@@ -811,6 +848,9 @@ function render(){
   });
   document.getElementById('secSummary').style.display=isSummary?'':'none';
   document.getElementById('secChannel').style.display=isChannel?'':'none';
+  if(isSummary||isChannel){
+    document.querySelectorAll('[id$=DetailSection]').forEach(el=>{el.style.display='none';});
+  }
   if(isSummary){renderSummary();document.getElementById('qcSection').style.display='none';return;}
   if(isChannel){renderChannel();document.getElementById('qcSection').style.display='none';return;}
   renderPNL();
@@ -826,11 +866,12 @@ function renderSummary(){
   const refDay=summaryRefDay!==null?summaryRefDay:cutoffDay;
   const summaryYear=D.cutoff?D.cutoff.split('-')[0]:String(new Date().getFullYear());
 
-  // 동기간 누적 CM (day 1~refDay) per division per month + hasDay flag
+  // 동기간 누적 CM + NS (day 1~refDay) per division per month + hasDay flag
   const dayCm={pf:{},br:{},ov:{},hasDay:{}};
+  const dayNs={pf:{},br:{},ov:{}};
   for(let m=1;m<=12;m++){
     const mk=summaryYear+'-'+String(m).padStart(2,'0');
-    let pc=0,bc=0,oc=0,hd=false;
+    let pc=0,bc=0,oc=0,pn=0,bn=0,on=0,hd=false;
     for(let d=1;d<=refDay;d++){
       const dk=mk+'-'+String(d).padStart(2,'0');
       const pd=pf.D?.[dk],bd=br.D?.[dk],od=ov.D?.[dk];
@@ -838,8 +879,12 @@ function renderSummary(){
       pc+=(gv(pd,'공헌이익')||0);
       bc+=(gv(bd,'공헌이익')||0);
       oc+=(gv(od,'공헌이익')||0);
+      pn+=(gv(pd,'순매출')||0);
+      bn+=(gv(bd,'순매출')||0);
+      on+=(gv(od,'순매출')||0);
     }
     dayCm.pf[m]=pc; dayCm.br[m]=bc; dayCm.ov[m]=oc; dayCm.hasDay[m]=hd;
+    dayNs.pf[m]=pn; dayNs.br[m]=bn; dayNs.ov[m]=on;
   }
 
   // ── 월별 피벗 테이블 (CSV 왼쪽 구조) ──────────────────────────────
@@ -903,14 +948,17 @@ function renderSummary(){
     },'');
   }
 
-  document.getElementById('summaryDayBar').innerHTML=`
+  const dayBarHtml=(id)=>`
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:11px;font-weight:700;color:var(--text-sub);letter-spacing:.3px">기준 일자</span>
-      <input type="number" id="summaryDayInput" min="1" max="31" value="${refDay}"
+      <input type="number" id="${id}" min="1" max="31" value="${refDay}"
         style="width:48px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;text-align:center;color:var(--navy)"
         onchange="summaryRefDay=Math.max(1,Math.min(31,parseInt(this.value,10)||1));renderSummary()">
-      <span style="font-size:11px;color:var(--text-sub)">일 — 동기간 누적 공헌이익에 적용</span>
+      <span style="font-size:11px;color:var(--text-sub)">일</span>
     </div>`;
+  document.getElementById('summaryDayBar').innerHTML=dayBarHtml('summaryDayInput');
+  document.getElementById('summaryCompDayBar').innerHTML=dayBarHtml('summaryDayInput2');
+  document.getElementById('summaryChartSpacer').innerHTML=dayBarHtml('__spacer__');
 
   document.getElementById('summaryPivotTable').innerHTML=`
     <div class="table-header"><h3>월별 요약<span style="font-size:11px;font-weight:400;color:var(--text-sub);margin-left:8px">사업부별 순매출 · 공헌이익 · ROI</span></h3></div>
@@ -922,42 +970,58 @@ function renderSummary(){
     const mKey=summaryYear+'-'+String(m).padStart(2,'0');
     const label=m+'월';
     const pfCm=dayCm.pf[m], brCm=dayCm.br[m], ovCm=dayCm.ov[m], hasDay=dayCm.hasDay[m];
+    const pfNs=dayNs.pf[m], brNs=dayNs.br[m], ovNs=dayNs.ov[m];
     const pfM=pf.M?.[mKey],brM=br.M?.[mKey],ovM=ov.M?.[mKey];
     const monthCm=(gv(pfM,'공헌이익')||0)+(gv(brM,'공헌이익')||0)+(gv(ovM,'공헌이익')||0);
     const monthNs=((gv(pfM,'순매출')||0)+(gv(brM,'순매출')||0)+(gv(ovM,'순매출')||0))||null;
-    const roi=(monthNs&&monthCm)?monthCm/monthNs*100:null;
     cLabels.push(label);
     if(!hasDay&&!pfM&&!brM&&!ovM){
-      rows+=`<tr><td style="font-weight:700;color:var(--text-sub);padding:5px 8px">${label}</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td></tr>`;
+      rows+=`<tr><td style="font-weight:700;color:var(--text-sub);padding:5px 8px">${label}</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td><td style="padding:5px 6px">-</td></tr>`;
       cPf.push(null);cBr.push(null);cOv.push(null);cRoi.push(null);
     } else {
-      const sum=pfCm+brCm+ovCm;
+      const cmSum=pfCm+brCm+ovCm;
+      const nsSum=pfNs+brNs+ovNs;
+      const syncRoi=(hasDay&&nsSum)?cmSum/nsSum*100:null;
       rows+=`<tr>
         <td style="font-weight:700;padding:5px 8px">${label}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(pfNs):'-'}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(brNs):'-'}</td>
+        <td style="padding:5px 6px">${hasDay?fmtCell(ovNs):'-'}</td>
+        <td class="col-ns" style="padding:5px 6px">${hasDay?fmtCell(nsSum):'-'}</td>
+        <td style="padding:5px 6px">${monthNs!=null?fmtCell(monthNs):'-'}</td>
         <td style="padding:5px 6px">${hasDay?fmtCell(pfCm):'-'}</td>
         <td style="padding:5px 6px">${hasDay?fmtCell(brCm):'-'}</td>
         <td style="padding:5px 6px">${hasDay?fmtCell(ovCm):'-'}</td>
-        <td class="col-cm" style="padding:5px 6px">${hasDay?fmtCell(sum):'-'}</td>
+        <td class="col-cm" style="padding:5px 6px">${hasDay?fmtCell(cmSum):'-'}</td>
         <td style="padding:5px 6px">${(pfM||brM||ovM)?fmtCell(monthCm):'-'}</td>
-        <td class="col-ns" style="padding:5px 6px">${monthNs!=null?fmtCell(monthNs):'-'}</td>
-        <td class="col-pct" style="padding:5px 6px">${roi!=null?roi.toFixed(1)+'%':'-'}</td>
+        <td class="col-pct" style="padding:5px 6px">${syncRoi!=null?syncRoi.toFixed(1)+'%':'-'}</td>
       </tr>`;
-      cPf.push(hasDay?pfCm:null);cBr.push(hasDay?brCm:null);cOv.push(hasDay?ovCm:null);cRoi.push(roi);
+      cPf.push(hasDay?pfCm:null);cBr.push(hasDay?brCm:null);cOv.push(hasDay?ovCm:null);cRoi.push(syncRoi);
     }
   }
 
   document.getElementById('summaryCompTable').innerHTML=`
-    <div class="table-header"><h3 style="font-size:13px">동기간 비교표<span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:6px">${refDay}일 기준 · 공헌이익</span></h3></div>
-    <div class="table-scroll" style="overflow-x:hidden"><table class="data" style="font-size:11px"><thead><tr>
-      <th style="text-align:left;width:32px;min-width:32px;padding:5px 6px;font-size:11px">월</th>
-      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">플랫폼</th>
-      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">브랜드</th>
-      <th style="width:52px;min-width:52px;padding:5px 6px;font-size:11px">해외</th>
-      <th class="col-cm" style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">합산</th>
-      <th style="width:58px;min-width:58px;padding:5px 6px;font-size:11px">월간총합</th>
-      <th class="col-ns" style="width:62px;min-width:62px;padding:5px 6px;font-size:11px">순매출</th>
-      <th class="col-pct" style="width:40px;min-width:40px;padding:5px 6px;font-size:11px">ROI</th>
-    </tr></thead><tbody>${rows}</tbody></table></div>`;
+    <div class="table-header"><h3 style="font-size:13px">동기간 비교표<span style="font-size:10px;font-weight:400;color:var(--text-sub);margin-left:6px">${refDay}일 기준 · 공헌이익 / 순매출</span></h3></div>
+    <div class="table-scroll" style="overflow-x:auto"><table class="data" style="font-size:11px"><thead>
+    <tr>
+      <th rowspan="2" style="text-align:left;width:32px;min-width:32px;padding:5px 6px;font-size:11px;vertical-align:middle">월</th>
+      <th colspan="4" class="group-hd-common" style="font-size:10px;padding:4px 6px">동기간 순매출 (${refDay}일)</th>
+      <th rowspan="2" style="width:60px;min-width:60px;padding:4px 5px;font-size:10px;line-height:1.3;vertical-align:middle;text-align:center">월간총합<br>순매출</th>
+      <th colspan="4" class="group-hd-common" style="font-size:10px;padding:4px 6px">동기간 공헌이익 (${refDay}일)</th>
+      <th rowspan="2" style="width:60px;min-width:60px;padding:4px 5px;font-size:10px;line-height:1.3;vertical-align:middle;text-align:center">월간총합<br>공헌이익</th>
+      <th rowspan="2" class="col-pct" style="width:38px;min-width:38px;padding:5px 6px;font-size:11px;vertical-align:middle">ROI</th>
+    </tr>
+    <tr>
+      <th style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">플랫폼</th>
+      <th style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">브랜드</th>
+      <th style="width:44px;min-width:44px;padding:4px 5px;font-size:11px;text-align:center">해외</th>
+      <th class="col-ns" style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">합산</th>
+      <th style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">플랫폼</th>
+      <th style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">브랜드</th>
+      <th style="width:44px;min-width:44px;padding:4px 5px;font-size:11px;text-align:center">해외</th>
+      <th class="col-cm" style="width:50px;min-width:50px;padding:4px 5px;font-size:11px;text-align:center">합산</th>
+    </tr>
+    </thead><tbody>${rows}</tbody></table></div>`;
 
   if(charts.summary){charts.summary.destroy();charts.summary=null;}
   const ctx=document.getElementById('chartSummary');
@@ -1740,7 +1804,7 @@ function renderB2bGradeDetail(){
       const keys=GRADE_KEYS[name];
       const gradeNS=gv(row,keys.ns);
       const gradeCost=gv(row,keys.cost);
-      const gradeCM=computeGradeCM(row,gradeNS,gradeCost);
+      const gradeCM=row[`__cm_${name}`]!==undefined?row[`__cm_${name}`]:computeGradeCM(row,gradeNS,gradeCost);
       const gradeROI=(gradeCM!=null&&gradeNS)?gradeCM/gradeNS*100:null;
       const vals=[gv(row,keys.ord),gv(row,keys.gmv),gradeNS,gradeCost,gradeCM,gradeROI];
       vals.forEach((v,i)=>{const cls=[gradeCls(i),i===0?`grp-left-${grp} col-narrow`:''].filter(Boolean).join(' ');r+=`<td class="${cls}"${cellStyle}>${fmtV(v,i===5)}</td>`;});
@@ -1758,7 +1822,21 @@ function renderB2bGradeDetail(){
     dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
     if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
     weekGroups.forEach(wg=>{
-      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',lvl[wg.week]||{},{summary:true});
+      const allWeekDays=Object.keys(dLvl).filter(d=>isoWeekKey(d)===wg.week&&selYears.has(yearOfKey(d)));
+      const isFullWeek=allWeekDays.length===wg.days.length;
+      let wRow;
+      if(isFullWeek){
+        wRow=lvl[wg.week]||{};
+      }else{
+        wRow=sumRows(wg.days,dLvl);
+        GRADE_NAMES.forEach(name=>{
+          const keys=GRADE_KEYS[name];
+          let s=0,ok=false;
+          wg.days.forEach(d=>{const dr=dLvl[d]||{};const cm=computeGradeCM(dr,gv(dr,keys.ns),gv(dr,keys.cost));if(cm!=null){s+=cm;ok=true;}});
+          if(ok)wRow[`__cm_${name}`]=s;
+        });
+      }
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',wRow,{summary:true});
       wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),dLvl[d]||{},{indent:true});});
     });
   }else{
@@ -1878,7 +1956,11 @@ function _renderGonguDetailGeneric({show,divCheck,sectionId,gonguKey,parentDivKe
     dayPeriods.forEach(p=>{let wk=isoWeekKey(p);if(wk!==curWeek){if(curWeek)weekGroups.push({week:curWeek,days:curGroup});curWeek=wk;curGroup=[p];}else curGroup.push(p);});
     if(curWeek)weekGroups.push({week:curWeek,days:curGroup});
     weekGroups.forEach(wg=>{
-      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',parentLvl[wg.week]||{},gonguLvl[wg.week]||{},{summary:true});
+      const allWeekDays=Object.keys(parentDLvl).filter(d=>isoWeekKey(d)===wg.week&&selYears.has(yearOfKey(d)));
+      const isFullWeek=allWeekDays.length===wg.days.length;
+      const wParent=isFullWeek?parentLvl[wg.week]||{}:sumRows(wg.days,parentDLvl);
+      const wGongu=isFullWeek?gonguLvl[wg.week]||{}:sumRows(wg.days,gonguDLvl);
+      tbody+=buildRow('📅 '+periodLabel(wg.week,'W')+' 합산',wParent,wGongu,{summary:true});
       wg.days.forEach(d=>{tbody+=buildRow(periodLabel(d,'D'),parentDLvl[d]||{},gonguDLvl[d]||{},{indent:true});});
     });
   }else{
@@ -2927,7 +3009,9 @@ async function refreshData(){
       if(dKeys.length>0)hasData=true;
     }
     if(!hasData)throw new Error('API가 빈 데이터를 반환했습니다. Tableau 연결을 확인하세요.');
+    const prevSummary={summary_pf:D.views.summary_pf,summary_br:D.views.summary_br,summary_ov:D.views.summary_ov};
     D=newData;
+    ['summary_pf','summary_br','summary_ov'].forEach(k=>{if(!D.views[k]&&prevSummary[k])D.views[k]=prevSummary[k];});
     let cutoff=D.cutoff||'';
     document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
     initYears();
