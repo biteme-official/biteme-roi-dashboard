@@ -849,7 +849,7 @@ function render(){
   document.getElementById('secSummary').style.display=isSummary?'':'none';
   document.getElementById('secChannel').style.display=isChannel?'':'none';
   if(isSummary||isChannel){
-    ['deliveryDetailSection','gonguDetailSection','ssfwGonguDetailSection','compiraGonguDetailSection','b2bGradeDetailSection'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+    document.querySelectorAll('[id$=DetailSection]').forEach(el=>{el.style.display='none';});
   }
   if(isSummary){renderSummary();document.getElementById('qcSection').style.display='none';return;}
   if(isChannel){renderChannel();document.getElementById('qcSection').style.display='none';return;}
@@ -3009,9 +3009,9 @@ async function refreshData(){
       if(dKeys.length>0)hasData=true;
     }
     if(!hasData)throw new Error('API가 빈 데이터를 반환했습니다. Tableau 연결을 확인하세요.');
-    const prevSummaryPf=D.views.summary_pf,prevSummaryBr=D.views.summary_br,prevSummaryOv=D.views.summary_ov;
+    const prevSummary={summary_pf:D.views.summary_pf,summary_br:D.views.summary_br,summary_ov:D.views.summary_ov};
     D=newData;
-    if(!D.views.summary_pf&&prevSummaryPf){D.views.summary_pf=prevSummaryPf;D.views.summary_br=prevSummaryBr;D.views.summary_ov=prevSummaryOv;}
+    ['summary_pf','summary_br','summary_ov'].forEach(k=>{if(!D.views[k]&&prevSummary[k])D.views[k]=prevSummary[k];});
     let cutoff=D.cutoff||'';
     document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
     initYears();
