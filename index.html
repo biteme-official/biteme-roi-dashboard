@@ -3009,6 +3009,7 @@ async function refreshData(){
       if(dKeys.length>0)hasData=true;
     }
     if(!hasData)throw new Error('API가 빈 데이터를 반환했습니다. Tableau 연결을 확인하세요.');
+    const summaryOk=!!(newData.views.summary_pf&&newData.views.summary_br&&newData.views.summary_ov);
     const prevSummary={summary_pf:D.views.summary_pf,summary_br:D.views.summary_br,summary_ov:D.views.summary_ov};
     D=newData;
     ['summary_pf','summary_br','summary_ov'].forEach(k=>{if(!D.views[k]&&prevSummary[k])D.views[k]=prevSummary[k];});
@@ -3016,7 +3017,8 @@ async function refreshData(){
     document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
     initYears();
     if(isAdmin){initAdminDates();}else{updateMonthFilter();render();}
-    showToast('데이터 갱신 완료 (~'+cutoff+')','success',3000);
+    if(summaryOk){showToast('데이터 갱신 완료 (~'+cutoff+')','success',3000);}
+    else{showToast('데이터 갱신 완료 (~'+cutoff+') — Summary 갱신 실패 (기존 데이터 유지)','error',6000);}
   }catch(e){
     console.error('Refresh error:',e);
     showToast('갱신 실패: '+e.message+' (기존 데이터 유지)','error',5000);

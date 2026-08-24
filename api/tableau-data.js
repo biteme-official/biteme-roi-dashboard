@@ -327,16 +327,13 @@ module.exports = async function handler(req, res) {
     const auth = await signIn();
     token = auth.token;
 
-    const csvs = await Promise.all(
-      VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {}))
-    );
-
-    let summaryCsv = null;
-    try {
-      summaryCsv = await fetchViewCSV(token, auth.siteId, SUMMARY_VIEW_ID, {});
-    } catch (summaryErr) {
-      console.error('SUMMARY view fetch failed (non-fatal):', summaryErr.message);
-    }
+    const [csvs, summaryCsv] = await Promise.all([
+      Promise.all(VIEWS.map(v => fetchViewCSV(token, auth.siteId, v.id, v.viewFilters || {}))),
+      fetchViewCSV(token, auth.siteId, SUMMARY_VIEW_ID, {}).catch(summaryErr => {
+        console.error('SUMMARY view fetch failed (non-fatal):', summaryErr.message);
+        return null;
+      }),
+    ]);
 
     const allDaily = {};
     let channelDaily = null;
