@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/tableau-data.js": {
-      "maxDuration": 180
-    }
-  }
-}
+{}
