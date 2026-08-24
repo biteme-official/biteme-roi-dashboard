@@ -2369,7 +2369,8 @@ function renderRecentDivs(){
 }
 
 const LS_KEY='biteme_roi_dash_state_v1';
-const CACHE_KEY='biteme_roi_dash_data_v1';
+const CACHE_KEY_DATA='biteme_roi_dash_data_v1';
+const CACHE_KEY_STR='biteme_roi_dash_str_v1';
 const IDB_NAME='biteme-roi-db';
 const IDB_STORE='cache';
 function idbOpen(){
@@ -3053,13 +3054,14 @@ async function refreshData(){
     if(!newData.views?.grand_total||!Object.keys(newData.views.grand_total.D||{}).length)
       throw new Error('API가 빈 데이터를 반환했습니다. Tableau 연결을 확인하세요.');
     const newStr=JSON.stringify(newData);
-    const cachedStr=await cacheGet(CACHE_KEY);
+    const cachedStr=await cacheGet(CACHE_KEY_STR);
     const summaryOk=!!(newData.views.summary_pf&&newData.views.summary_br&&newData.views.summary_ov);
     const prevSummary=D?{summary_pf:D.views.summary_pf,summary_br:D.views.summary_br,summary_ov:D.views.summary_ov}:{};
     D=newData;
     ['summary_pf','summary_br','summary_ov'].forEach(k=>{if(!D.views[k]&&prevSummary[k])D.views[k]=prevSummary[k];});
     if(newStr!==cachedStr){
-      await cachePut(CACHE_KEY,newStr);
+      await cachePut(CACHE_KEY_DATA,newData);
+      await cachePut(CACHE_KEY_STR,newStr);
       const cutoff=D.cutoff||'';
       document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
       initYears();
@@ -3084,8 +3086,8 @@ async function refreshData(){
 }
 loadPersistedState();
 (async()=>{
-  const raw=await cacheGet(CACHE_KEY);
-  if(raw){try{D=JSON.parse(raw);}catch(e){}}
+  const raw=await cacheGet(CACHE_KEY_DATA);
+  if(raw){D=raw;}
   if(D){
     document.getElementById('loadingOverlay').classList.add('hidden');
     initYears();
