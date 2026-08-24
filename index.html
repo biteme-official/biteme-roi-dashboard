@@ -536,6 +536,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
 <div id="loadingOverlay">
   <div class="lo-spinner"></div>
   <div class="lo-msg">데이터 불러오는 중...</div>
+  <button class="lo-retry" style="display:none" onclick="refreshData()">다시 시도</button>
 </div>
 <div class="modal-overlay" id="adminModal">
   <div class="modal-box">
@@ -2369,6 +2370,36 @@ function renderRecentDivs(){
 
 const LS_KEY='biteme_roi_dash_state_v1';
 const CACHE_KEY='biteme_roi_dash_data_v1';
+const IDB_NAME='biteme-roi-db';
+const IDB_STORE='cache';
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(IDB_NAME,1);
+    req.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+async function cacheGet(key){
+  try{
+    const db=await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const req=db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(key);
+      req.onsuccess=e=>resolve(e.target.result??null);
+      req.onerror=e=>reject(e.target.error);
+    });
+  }catch(e){return null;}
+}
+async function cachePut(key,val){
+  try{
+    const db=await idbOpen();
+    return new Promise((resolve,reject)=>{
+      const req=db.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).put(val,key);
+      req.onsuccess=()=>resolve();
+      req.onerror=e=>reject(e.target.error);
+    });
+  }catch(e){}
+}
 let persistSaveWarned=false;
 function savePersistedState(){
   try{
@@ -3009,7 +3040,11 @@ function showToast(msg,type,duration){
 async function refreshData(){
   const btn=document.getElementById('refreshBtn');
   const overlay=document.getElementById('loadingOverlay');
+  const spinner=overlay.querySelector('.lo-spinner');
+  const retryBtn=overlay.querySelector('.lo-retry');
   btn.classList.add('spinning');
+  spinner.style.display='';
+  retryBtn.style.display='none';
   if(!D) showToast('Tableau 데이터 불러오는 중...','loading');
   try{
     const resp=await fetch('/api/tableau-data?t='+Date.now());
@@ -3018,14 +3053,13 @@ async function refreshData(){
     if(!newData.views?.grand_total||!Object.keys(newData.views.grand_total.D||{}).length)
       throw new Error('API가 빈 데이터를 반환했습니다. Tableau 연결을 확인하세요.');
     const newStr=JSON.stringify(newData);
-    let cachedStr=null;
-    try{cachedStr=localStorage.getItem(CACHE_KEY);}catch(e){}
+    const cachedStr=await cacheGet(CACHE_KEY);
     const summaryOk=!!(newData.views.summary_pf&&newData.views.summary_br&&newData.views.summary_ov);
     const prevSummary=D?{summary_pf:D.views.summary_pf,summary_br:D.views.summary_br,summary_ov:D.views.summary_ov}:{};
     D=newData;
     ['summary_pf','summary_br','summary_ov'].forEach(k=>{if(!D.views[k]&&prevSummary[k])D.views[k]=prevSummary[k];});
     if(newStr!==cachedStr){
-      try{localStorage.setItem(CACHE_KEY,newStr);}catch(e){}
+      await cachePut(CACHE_KEY,newStr);
       const cutoff=D.cutoff||'';
       document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
       initYears();
@@ -3040,26 +3074,26 @@ async function refreshData(){
       overlay.classList.add('hidden');
       showToast('갱신 실패: '+e.message+' (기존 데이터 유지)','error',5000);
     }else{
+      spinner.style.display='none';
       overlay.querySelector('.lo-msg').textContent='데이터 로드 실패: '+e.message;
+      retryBtn.style.display='';
     }
   }finally{
     btn.classList.remove('spinning');
   }
 }
 loadPersistedState();
-(()=>{
-  try{
-    const raw=localStorage.getItem(CACHE_KEY);
-    if(raw){D=JSON.parse(raw);}
-  }catch(e){}
+(async()=>{
+  const raw=await cacheGet(CACHE_KEY);
+  if(raw){try{D=JSON.parse(raw);}catch(e){}}
+  if(D){
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    initYears();
+    document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===curGran));
+    jumpToDiv(curDiv,{keepMonths:true});
+  }
+  refreshData();
 })();
-if(D){
-  document.getElementById('loadingOverlay').classList.add('hidden');
-  initYears();
-  document.querySelectorAll('#granGroup .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.g===curGran));
-  jumpToDiv(curDiv,{keepMonths:true});
-}
-refreshData();
 </script>
 </body>
 </html>
