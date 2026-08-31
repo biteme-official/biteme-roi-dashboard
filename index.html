@@ -3113,29 +3113,46 @@ loadPersistedState();
 })();
 
 /* ===== 표 CSV 다운로드 ===== */
-function rowToCells(tr){
-  const cells=[];
-  tr.querySelectorAll('th,td').forEach(cell=>{
-    const inp=cell.querySelector('input,textarea,select');
-    let txt=inp?(inp.value||''):(cell.innerText||'');
-    txt=txt.replace(/\s+/g,' ').trim();
-    cells.push(txt);
-    const span=parseInt(cell.getAttribute('colspan')||'1',10);
-    for(let i=1;i<span;i++) cells.push('');
+function cellText(cell){
+  const inp=cell.querySelector('input,textarea,select');
+  const txt=inp?(inp.value||''):(cell.innerText||'');
+  return txt.replace(/\s+/g,' ').trim();
+}
+// tr 목록을 colspan·rowspan 반영한 2차원 그리드로 전개 (병합셀 열 밀림 방지)
+function gridFromRows(trs){
+  const grid=[];
+  trs.forEach((tr,r)=>{
+    if(!grid[r]) grid[r]=[];
+    let c=0;
+    tr.querySelectorAll(':scope>th,:scope>td').forEach(cell=>{
+      while(grid[r][c]!==undefined) c++; // 위 행 rowspan이 점유한 칸 건너뛰기
+      const txt=cellText(cell);
+      const colspan=parseInt(cell.getAttribute('colspan')||'1',10);
+      const rowspan=parseInt(cell.getAttribute('rowspan')||'1',10);
+      for(let rr=0;rr<rowspan;rr++){
+        if(!grid[r+rr]) grid[r+rr]=[];
+        for(let cc=0;cc<colspan;cc++) grid[r+rr][c+cc]=(rr===0&&cc===0)?txt:'';
+      }
+      c+=colspan;
+    });
   });
-  return cells;
+  const width=grid.reduce((m,row)=>Math.max(m,row?row.length:0),0);
+  return grid.map(row=>{const out=[];for(let i=0;i<width;i++) out.push(row&&row[i]!==undefined?row[i]:'');return out;});
 }
 function tableToRows(table){
-  const rows=[];
+  let rows=[];
   // 헤더는 항상 포함
-  if(table.tHead) table.tHead.querySelectorAll('tr').forEach(tr=>{const c=rowToCells(tr); if(c.length) rows.push(c);});
+  if(table.tHead){const h=gridFromRows(Array.from(table.tHead.querySelectorAll(':scope>tr'))); rows.push(...h);}
   // 본문: 선택된 행이 있으면 그 행만, 없으면 전체
   let bodyRows=[];
   Array.from(table.tBodies).forEach(tb=>bodyRows.push(...tb.querySelectorAll(':scope>tr')));
-  if(!table.tHead&&bodyRows.length===0) bodyRows=Array.from(table.querySelectorAll('tr'));
+  if(!table.tHead&&bodyRows.length===0) bodyRows=Array.from(table.querySelectorAll(':scope>tr'));
   const sel=bodyRows.filter(tr=>tr.classList.contains('tsv-sel'));
-  (sel.length?sel:bodyRows).forEach(tr=>{const c=rowToCells(tr); if(c.length) rows.push(c);});
-  return rows;
+  const chosen=sel.length?sel:bodyRows;
+  if(chosen.length) rows.push(...gridFromRows(chosen));
+  // 헤더/본문 폭 불일치 시 최대폭으로 패딩
+  const width=rows.reduce((m,r)=>Math.max(m,r.length),0);
+  return rows.map(r=>{while(r.length<width) r.push(''); return r;});
 }
 function tableToCSV(table){
   return tableToRows(table).map(cells=>cells.map(txt=>
@@ -3231,7 +3248,7 @@ function attachCsvButtons(){
 }
 // 행 클릭 → 선택 토글 (다중 선택)
 document.addEventListener('click',function(e){
-  if(e.target.closest('input,textarea,select,button,a,label,.promo-input')) return;
+  if(e.target.closest('input,textarea,select,button,a,label,.promo-input,.ch-name-cell,[onclick]')) return;
   const tr=e.target.closest('table.data tbody tr,table.admin-tbl tbody tr');
   if(!tr) return;
   const table=tr.closest('table');
