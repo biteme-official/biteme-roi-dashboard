@@ -546,7 +546,7 @@ table.admin-tbl tr:hover td{background:#EFF6FF}
   </div>
   <div id="adminResult"></div>
 </div>
-<div class="footer">Tableau MCP 자동 연동 | 바잇미 전사 ROI 대시보드 | 데이터 ~2026-06-07 | 생성 2026-06-08</div>
+<div class="footer" id="footerInfo">Tableau MCP 자동 연동 | 바잇미 전사 ROI 대시보드</div>
 </div>
 <div id="loadingOverlay">
   <div class="lo-spinner"></div>
@@ -651,7 +651,7 @@ const L2_MAP = {
 const L3_MAP = {etc:[{div:'etc_channel',label:'그외채널 CM'},{div:'ssfw',label:'ssfw'},{div:'compira',label:'컴피라'}]};
 const GRAN_NAMES = {M:'월간',W:'주간',D:'일간',WD:'주간+일간'};
 
-let curDiv='grand_total', selYears=new Set(['2026']), curGran='M', selMonths=new Set(), charts={};
+let curDiv='grand_total', selYears=new Set([String(new Date().getFullYear())]), curGran='M', selMonths=new Set(), charts={};
 let summaryRefDay=null;
 let showDeliveryDetail=false;
 let showGonguDetail=false;
@@ -865,7 +865,16 @@ function renderDeliveryDetail(){
   sec.style.display='block';
 }
 
+function updateFooter(){
+  const el=document.getElementById('footerInfo');
+  if(!el)return;
+  const cutoff=(D&&D.cutoff)?D.cutoff:'—';
+  const n=new Date(),p=x=>String(x).padStart(2,'0');
+  const ts=`${n.getFullYear()}-${p(n.getMonth()+1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
+  el.textContent=`Tableau MCP 자동 연동 | 바잇미 전사 ROI 대시보드 | 데이터 ~${cutoff} | 갱신 ${ts}`;
+}
 function render(){
+  updateFooter();
   const isSummary=(curDiv==='summary');
   const isChannel=(curDiv==='etc_channel');
   ['mainControls','kpiSection','pnlTable','trendSection','waterfallSection'].forEach(id=>{
@@ -2530,6 +2539,8 @@ function initYears(){
   if(!D||!D.views||!D.views.grand_total)return;
   let vd=D.views.grand_total;
   let years=Object.keys(vd.Y).sort();
+  // 선택된 연도가 실제 데이터에 하나도 없으면(예: 연초라 올해 데이터 미유입) 최신 연도로 자동 지정
+  if(years.length&&!years.some(y=>selYears.has(y))){selYears.clear();selYears.add(years[years.length-1]);}
   document.getElementById('yrBtns').innerHTML=years.map(y=>
     `<button class="yr-btn${selYears.has(y)?' active':''}" data-yr="${y}" onclick="toggleYear('${y}')">${y}</button>`
   ).join('');
@@ -3079,6 +3090,7 @@ async function refreshData(){
       await cachePut(CACHE_KEY_DATA,newData);
       const cutoff=D.cutoff||'';
       document.querySelector('.header-right span[style*="opacity"]').textContent='~'+cutoff;
+      updateFooter();
       initYears();
       if(isAdmin){initAdminDates();}else{updateMonthFilter();render();}
       if(summaryOk){showToast('데이터 갱신 완료 (~'+cutoff+')','success',3000);}
@@ -3246,14 +3258,41 @@ function attachCsvButtons(){
     updateSelUI(table);
   });
 }
-// 행 클릭 → 선택 토글 (다중 선택)
+// 행 클릭 → 선택 토글 (다중 선택). Shift+클릭 → 앵커~현재 행 범위 선택 (엑셀식)
+const _tsvAnchor=new WeakMap();
+function tsvBodyRows(table){
+  const rows=[];
+  Array.from(table.tBodies).forEach(tb=>rows.push(...tb.querySelectorAll(':scope>tr')));
+  return rows;
+}
 document.addEventListener('click',function(e){
   if(e.target.closest('input,textarea,select,button,a,label,.promo-input,.ch-name-cell,[onclick]')) return;
   const tr=e.target.closest('table.data tbody tr,table.admin-tbl tbody tr');
   if(!tr) return;
   const table=tr.closest('table');
   if(!table) return;
-  tr.classList.toggle('tsv-sel');
+  const rows=tsvBodyRows(table);
+  const multi=e.ctrlKey||e.metaKey;
+  const anchor=_tsvAnchor.get(table);
+  if(e.shiftKey&&anchor&&table.contains(anchor)){
+    // Shift+클릭: 앵커~클릭 행 범위 선택 (앵커 유지 → 연속 shift로 범위 조정)
+    const ai=rows.indexOf(anchor), ti=rows.indexOf(tr);
+    if(ai>=0&&ti>=0){
+      if(!multi) rows.forEach(r=>r.classList.remove('tsv-sel')); // Ctrl+Shift면 기존 선택 유지하며 범위 추가
+      const lo=Math.min(ai,ti), hi=Math.max(ai,ti);
+      for(let i=lo;i<=hi;i++) rows[i].classList.add('tsv-sel');
+    }
+    const sel=window.getSelection&&window.getSelection(); if(sel&&sel.removeAllRanges) sel.removeAllRanges();
+  }else if(multi){
+    // Ctrl/⌘+클릭: 개별 행 추가/해제 (비연속 다중 선택), 앵커 갱신
+    tr.classList.toggle('tsv-sel');
+    _tsvAnchor.set(table,tr);
+  }else{
+    // 일반 클릭: 나머지 해제하고 이 행만 단독 선택, 앵커 갱신
+    rows.forEach(r=>r.classList.remove('tsv-sel'));
+    tr.classList.add('tsv-sel');
+    _tsvAnchor.set(table,tr);
+  }
   updateSelUI(table);
 });
 let _csvBtnTimer=null;
