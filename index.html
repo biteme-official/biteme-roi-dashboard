@@ -3288,10 +3288,15 @@ document.addEventListener('click',function(e){
     tr.classList.toggle('tsv-sel');
     _tsvAnchor.set(table,tr);
   }else{
-    // 일반 클릭: 나머지 해제하고 이 행만 단독 선택, 앵커 갱신
+    // 일반 클릭: 단독 선택된 행을 재클릭하면 해제(토글 off), 그 외엔 나머지 해제하고 이 행만 단독 선택
+    const soleSelected=tr.classList.contains('tsv-sel')&&selectedCount(table)===1;
     rows.forEach(r=>r.classList.remove('tsv-sel'));
-    tr.classList.add('tsv-sel');
-    _tsvAnchor.set(table,tr);
+    if(soleSelected){
+      _tsvAnchor.delete(table);
+    }else{
+      tr.classList.add('tsv-sel');
+      _tsvAnchor.set(table,tr);
+    }
   }
   updateSelUI(table);
 });
